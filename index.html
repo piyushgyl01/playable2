@@ -30,6 +30,7 @@ li{margin:3px 0}
 </div>
 
 <div id="app" style="display:none">
+  <pre id="read"></pre>
   <pre id="next-move"></pre>
   <pre id="map"></pre>
   <pre id="rpg-stats"></pre>
@@ -307,6 +308,145 @@ function shuffleDailies(ds) {
   return out;
 }
 function isDailyDoneToday(t) { return (t.completedDates || []).includes(today()); }
+
+/* ── the read ────────────────────────────────────────────────
+   the app's opinion of your state, in sentences. every line is
+   derived from the same rules that move the numbers — nothing is
+   guessed, nothing is generated. it says what the numbers mean so
+   you don't have to translate them yourself. */
+
+function allCompletionDays() {
+  const by = {};
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.quest === 'reward') return;
+    if (t.quest === 'daily') (t.completedDates || []).forEach(d => by[d] = (by[d] || 0) + 1);
+    else if (t.completedAt) { const d = dayStr(t.completedAt); by[d] = (by[d] || 0) + 1; }
+  });
+  return by;
+}
+
+/* how many dailies you cleared on each day you played */
+function dailyClearByDay() {
+  const by = {};
+  tasks.filter(t => t.quest === 'daily').forEach(t =>
+    (t.completedDates || []).forEach(d => by[d] = (by[d] || 0) + 1));
+  return by;
+}
+
+function weekCount(offsetWeeks) {
+  const end = new Date(Date.now() - offsetWeeks * 7 * 864e5);
+  const start = new Date(end.getTime() - 7 * 864e5);
+  let n = 0;
+  const by = allCompletionDays();
+  Object.keys(by).forEach(d => {
+    const t = new Date(d);
+    if (t >= start && t < end) n += by[d];
+  });
+  return n;
+}
+
+/* how long a pillar has been sitting under 15% of your effort */
+function daysNeglected(cat) {
+  const by = {};
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.quest === 'reward') return;
+    const c = getTaskCat(t);
+    if (t.quest === 'daily') (t.completedDates || []).forEach(d => {
+      by[d] = by[d] || {}; by[d][c] = (by[d][c] || 0) + 25;
+    });
+    else if (t.done && t.completedAt) {
+      const d = dayStr(t.completedAt);
+      by[d] = by[d] || {}; by[d][c] = (by[d][c] || 0) + xpFromTask(t);
+    }
+  });
+  const days = Object.keys(by).sort();
+  if (!days.length) return 0;
+  const run = {}; CAT_KEYS.forEach(c => run[c] = 0);
+  const share = [];
+  days.forEach(d => {
+    CAT_KEYS.forEach(c => run[c] += (by[d][c] || 0));
+    const tot = CAT_KEYS.reduce((s, c) => s + run[c], 0) || 1;
+    share.push({ d, pct: run[cat] / tot * 100 });
+  });
+  let n = 0;
+  for (let i = share.length - 1; i >= 0; i--) { if (share[i].pct < 15) n++; else break; }
+  if (!n) return 0;
+  // count real calendar days, not just days you played
+  const from = share[share.length - n].d;
+  return Math.max(n, Math.round((new Date(today()) - new Date(from)) / 864e5));
+}
+
+function ordinalDay(ds) {
+  const m = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const p = ds.split('-');
+  return m[+p[1] - 1] + ' ' + (+p[2]);
+}
+
+function renderRead() {
+  const lines = [];
+  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const clears = dailyClearByDay();
+  const doneToday = dailies.filter(isDailyDoneToday).length;
+
+  /* today, judged against your own history — not against 100% */
+  const past = Object.keys(clears).filter(d => d !== today());
+  const best = past.length ? Math.max(...past.map(d => clears[d])) : 0;
+  const bestDay = past.find(d => clears[d] === best);
+  const median = past.length
+    ? [...past.map(d => clears[d])].sort((a, b) => a - b)[Math.floor(past.length / 2)] : 0;
+
+  if (!dailies.length) lines.push('no dailies yet — add a few and this fills in.');
+  else if (doneToday === 0) {
+    lines.push('nothing yet today. your usual day is ' + median + ' of ' + dailies.length + '.');
+  } else if (doneToday > best) {
+    lines.push('today is ' + doneToday + '/' + dailies.length + ' — your best day yet' +
+      (best ? ' (previous best ' + best + ', ' + ordinalDay(bestDay) + ')' : '') + '.');
+  } else if (doneToday >= median) {
+    lines.push('today is ' + doneToday + '/' + dailies.length + ' — above your usual ' + median +
+      '. ' + (best - doneToday > 0 ? (best - doneToday) + ' more ties your record.' : ''));
+  } else {
+    lines.push('today is ' + doneToday + '/' + dailies.length + '. your usual is ' + median +
+      ' — ' + (median - doneToday) + ' more gets you there.');
+  }
+
+  /* what is carrying the run, and what is not */
+  const ranked = CAT_KEYS.map(c => ({ c, pct: Math.round(catXP(c) / total * 100) }))
+    .sort((a, b) => b.pct - a.pct);
+  if (ranked[0].pct >= 55)
+    lines.push(ranked[0].c + ' is carrying this run — ' + ranked[0].pct + '% of everything you have done.');
+  else
+    lines.push('your effort is spread: ' + ranked.map(r => r.c + ' ' + r.pct + '%').join(', ') + '.');
+
+  CAT_KEYS.forEach(c => {
+    const n = daysNeglected(c);
+    if (n >= 3) lines.push(c + ' has been under 15% for ' + n + ' day' + (n > 1 ? 's' : '') + '.');
+  });
+
+  /* momentum */
+  const tw = weekCount(0), lw = weekCount(1);
+  if (tw || lw) {
+    lines.push('this week ' + tw + ' done, last week ' + lw + ' — ' +
+      (tw > lw ? 'climbing.' : tw < lw ? 'slowing.' : 'level.'));
+  }
+
+  /* what is within reach — the anticipation the numbers already contain */
+  const reach = [];
+  CAT_KEYS.forEach(c => {
+    const p = levelProgress(catXP(c)), left = p.reqLvlXP - p.curLvlXP;
+    reach.push({ label: c + ' lvl ' + (p.lvl + 1), n: Math.ceil(left / 25), left });
+  });
+  const pp = levelProgress(totalXP());
+  reach.push({ label: 'player lvl ' + (pp.lvl + 1), n: Math.ceil((pp.reqLvlXP - pp.curLvlXP) / 25), left: pp.reqLvlXP - pp.curLvlXP });
+  reach.sort((a, b) => a.left - b.left);
+  lines.push(reach[0].n + ' more completion' + (reach[0].n === 1 ? '' : 's') + ' to ' + reach[0].label + '.');
+
+  const st = calcStreak();
+  if (st >= 3) lines.push(st + '-day streak — ' + (isDailyDoneToday(dailies[0] || {}) || doneToday ? 'held today.' : 'not yet held today.'));
+
+  document.getElementById('read').textContent =
+    '── the read ─────────────────────────────────\n' + lines.map(l => '  ' + l).join('\n');
+}
 
 /* ── the map ─────────────────────────────────────────────────
    three regions, one per pillar. exploration is breadth, not xp:
@@ -681,7 +821,7 @@ function setFilter(c) {
 }
 
 function render() {
-  renderNextMove(); renderMap(); renderRPGStats(); renderShop(); renderVault(); renderHabits(); renderXPLogs();
+  renderRead(); renderNextMove(); renderMap(); renderRPGStats(); renderShop(); renderVault(); renderHabits(); renderXPLogs();
 
   const filtered = tasks
     .map((t, i) => ({ t, i }))

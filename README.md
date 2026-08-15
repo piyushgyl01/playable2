@@ -18,6 +18,24 @@ conflict retry · PWA.
 verified against the real save: task XP 6350, pillars 5 / 3 / 14, player lvl 17 —
 identical to v1.
 
+## the read
+
+the app's opinion of your state, in sentences, at the top of the screen:
+
+    ── the read ─────────────────────────────────
+      today is 9/14 — your best day yet (previous best 8, aug 6).
+      wealth is carrying this run — 79% of everything you have done.
+      health has been under 15% for 17 days.
+      this week 17 done, last week 40 — slowing.
+      1 more completion to wealth lvl 15.
+
+every line is derived from the same rules that move the numbers. nothing is
+generated at runtime and no model is involved — the same save always produces
+the same read.
+
+it judges the day against *your own history*, not against 100%. a 14-daily list
+means "clear them all" is not a real target; "better than your usual 7" is.
+
 ## the RPG layer
 
 **bosses.** a task with more than one session is a boss. it holds hp, each
@@ -58,6 +76,8 @@ habit streak about to lapse → whatever's left.
 - **due dates surfaced.** v1 computed `isOverdue` / `isDueToday` and then never
   rendered them. they now show, and the edit prompt can set a due date.
 - **dailies-today bar** in the stats block.
+- **the anime pass is gone.** it was claimed zero times in seventeen days —
+  gated behind 14/14 dailies when the best day on record was 8/14.
 - **`hp` / `hits` / `steps`** are fields v1's CLI and Actions don't read; they
   round-trip through `tasks.json` untouched.
 - **task text is escaped.** v1 injected it raw into `innerHTML` on a page holding
