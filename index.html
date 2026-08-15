@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>playable</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;padding:16px;max-width:760px;margin:0 auto}
+pre{white-space:pre-wrap;font-size:13px}
+li{margin:3px 0}
+.hab{color:#666;font-size:12px}
+.warn{color:#b00}
+.ok{color:#070}
+#toast,#banner{position:fixed;right:12px;bottom:12px;background:#000;color:#fff;padding:8px 12px;border-radius:6px}
+#banner{bottom:56px;background:#070}
+</style>
+</head>
+<body>
+
+<h1>playable</h1>
+
+<div id="auth" style="display:none">
+  <p>repo (user/repo):</p>
+  <input id="repo-input" placeholder="piyushgyl01/playable">
+  <p>paste a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable-app" target="_blank">github token</a> (repo scope):</p>
+  <input id="token-input" placeholder="ghp_...">
+  <br><br>
+  <button onclick="saveToken()">save</button>
+</div>
+
+<div id="app" style="display:none">
+  <pre id="next-move"></pre>
+  <pre id="map"></pre>
+  <pre id="rpg-stats"></pre>
+
+  <form onsubmit="addTask(event)">
+    <input id="inp" placeholder="what needs doing?" autofocus>
+    <input id="hp-input" type="number" min="1" value="1" style="width:56px" title="how many sessions will this take? more than 1 makes it a boss">
+    <select id="cat-input">
+      <option value="health">health</option>
+      <option value="relationships">relationships</option>
+      <option value="wealth">wealth</option>
+    </select>
+    <select id="quest-input">
+      <option value="daily">daily</option>
+      <option value="main" selected>main</option>
+      <option value="side">side</option>
+      <option value="story">story</option>
+    </select>
+    <button type="submit">add</button>
+  </form>
+
+  <p id="filters">
+    filter:
+    <button data-filter="all" onclick="setFilter('all')">all</button>
+    <button data-filter="health" onclick="setFilter('health')">health</button>
+    <button data-filter="relationships" onclick="setFilter('relationships')">relationships</button>
+    <button data-filter="wealth" onclick="setFilter('wealth')">wealth</button>
+  </p>
+
+  <div id="list"></div>
+
+  <br>
+  <button onclick="toggleMore()" id="more-btn">show options</button>
+
+  <div id="more" style="display:none">
+    <p>— reward shop —</p>
+    <div id="shop"></div>
+    <form onsubmit="addReward(event)">
+      <input id="r-name" placeholder="a reward you want" size="24">
+      <input id="r-cost" type="number" value="100" min="1" style="width:70px"> xp
+      <button type="submit">add reward</button>
+    </form>
+
+    <p>— rewards vault —</p>
+    <ul id="rewards-vault-list"></ul>
+
+    <p>— habits —</p>
+    <div id="habits"></div>
+
+    <p>— xp logs —</p>
+    <ul id="xp-logs-list"></ul>
+
+    <p><small><a href="#" onclick="clearToken();return false">change token / repo</a></small></p>
+  </div>
+</div>
+
+<p id="status"></p>
+<div id="toast" style="display:none"></div>
+<div id="banner" style="display:none"></div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   playable — same tasks.json contract as v1.
+   the CLI and the GitHub Actions keep working against this file
+   unchanged; nothing new is written that they can't ignore.
+   ───────────────────────────────────────────────────────────── */
+
+const FILE = 'tasks.json';
+const ARCHIVE_FILE = 'archive.json';
+const CATS = { health: '💪', relationships: '🤝', wealth: '💰' };
+const CAT_KEYS = ['health', 'relationships', 'wealth'];
+
+let repo = localStorage.getItem('gh_repo') || '';
+let token = localStorage.getItem('gh_token') || '';
+let sha = '';
+let tasks = [];
+let archivedTasks = [];
+let moreVisible = false;
+let currentFilter = 'all';
+
+function status(m) { document.getElementById('status').textContent = m; }
+
+/* ── XP — identical to v1, so the numbers never jump ────────── */
+function xpForLevel(L) { return Math.floor(100 * Math.pow(L, 1.5)); }
+function getLevel(xp) { let l = 1; while (xp >= xpForLevel(l)) l++; return l; }
+
+function xpFromTask(t) {
+  if (t.quest === 'daily') return (t.completedDates || []).length * 25;
+  if (!t.done) return 0;
+  if (t.quest === 'main') return 200;
+  if (t.quest === 'story') return 100;
+  if (t.quest === 'side') return 50;
+  if (t.priority === 3) return 500;
+  if (t.priority === 2) return 100;
+  if (t.priority === 1) return 75;
+  return 50;
+}
+
+function getTaskCat(t) {
+  if (t.category) return t.category;
+  const s = (t.text || '').toLowerCase();
+  if (/(mom|dad|friend|family|talk|call|meet)/.test(s)) return 'relationships';
+  if (/(run|gym|walk|breakfast|meds|passport)/.test(s)) return 'health';
+  return 'wealth';
+}
+
+function dayStr(d) { return new Date(d).toISOString().slice(0, 10); }
+function today() { return dayStr(new Date()); }
+function addDays(ds, n) {
+  const p = ds.split('-').map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/* Which categories were touched on each day — the basis of both the
+   tri-pillar bonus and the new pair bonus. */
+function catsByDate() {
+  const all = [...tasks, ...archivedTasks];
+  const by = {};
+  all.forEach(t => {
+    if (t.quest === 'daily') {
+      (t.completedDates || []).forEach(ds => (by[ds] = by[ds] || new Set()).add(getTaskCat(t)));
+    } else if (t.completedAt) {
+      const ds = dayStr(t.completedAt);
+      (by[ds] = by[ds] || new Set()).add(getTaskCat(t));
+    }
+  });
+  return by;
+}
+
+/* v1 paid +100 only at 3/3. Two of three paid nothing, which made a
+   2-pillar day feel like a failure. Pairs now pay +25 on the way up. */
+const PAIR_XP = 25, TRI_XP = 100;
+
+function bonusBreakdown() {
+  const by = catsByDate();
+  let triDays = 0, pairDays = 0;
+  Object.keys(by).forEach(ds => {
+    const n = CAT_KEYS.filter(c => by[ds].has(c)).length;
+    if (n >= 3) triDays++;
+    else if (n === 2) pairDays++;
+  });
+  const td = today();
+  const tc = by[td] || new Set();
+  return {
+    triDays, pairDays,
+    bonusXP: triDays * TRI_XP + pairDays * PAIR_XP,
+    todayCats: tc,
+    todayCount: CAT_KEYS.filter(c => tc.has(c)).length
+  };
+}
+
+function catXP(cat) {
+  let xp = 0;
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (getTaskCat(t) !== cat) return;
+    if (t.quest === 'daily') xp += (t.completedDates || []).length * 25;
+    else if (t.done) xp += xpFromTask(t);
+  });
+  return xp;
+}
+
+function totalXP() {
+  let xp = 0;
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.quest === 'daily') xp += (t.completedDates || []).length * 25;
+    else if (t.done) xp += xpFromTask(t);
+  });
+  return xp + bonusBreakdown().bonusXP;
+}
+
+/* XP already committed to rewards you've taken. Lifetime XP still counts
+   it — this is only the spendable balance. */
+function spentXP() {
+  return [...tasks, ...archivedTasks]
+    .filter(t => t.quest === 'reward' && t.claimed)
+    .reduce((s, t) => s + (t.cost || 0), 0);
+}
+function availableXP() { return totalXP() - spentXP(); }
+
+function progressBar(cur, max, w) {
+  const f = Math.min(w, Math.floor((cur / max) * w));
+  return '█'.repeat(f) + '░'.repeat(w - f);
+}
+function levelProgress(xp) {
+  const l = getLevel(xp), prev = l > 1 ? xpForLevel(l - 1) : 0, next = xpForLevel(l);
+  return { lvl: l, curLvlXP: xp - prev, reqLvlXP: next - prev };
+}
+
+function calcStreak() {
+  const days = new Set();
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.quest === 'daily') (t.completedDates || []).forEach(d => days.add(d));
+    else if (t.completedAt) days.add(dayStr(t.completedAt));
+  });
+  let streak = 0, d = new Date();
+  while (true) {
+    const ds = dayStr(d);
+    if (days.has(ds)) { streak++; d.setDate(d.getDate() - 1); }
+    else if (streak === 0) {
+      d.setDate(d.getDate() - 1);
+      if (days.has(dayStr(d))) { streak++; d.setDate(d.getDate() - 1); } else break;
+    } else break;
+  }
+  return streak;
+}
+
+function calcStats() {
+  const weekAgo = new Date(Date.now() - 7 * 864e5);
+  let added = 0, completed = 0;
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.addedAt && new Date(t.addedAt) >= weekAgo) added++;
+    if (t.quest === 'daily') (t.completedDates || []).forEach(ds => { if (new Date(ds) >= weekAgo) completed++; });
+    else if (t.completedAt && new Date(t.completedAt) >= weekAgo) completed++;
+  });
+  return { added, completed };
+}
+
+/* ── new: per-habit level and streak, derived from completedDates.
+   no new data is stored — this reads what v1 already writes. ──── */
+function habitStreak(t) {
+  const days = new Set(t.completedDates || []);
+  if (!days.size) return 0;
+  let cur = days.has(today()) ? today() : addDays(today(), -1);
+  let n = 0;
+  while (days.has(cur) && n < 3000) { n++; cur = addDays(cur, -1); }
+  return n;
+}
+function habitLevel(t) { return getLevel((t.completedDates || []).length * 25); }
+
+/* ── bosses ──────────────────────────────────────────────────
+   a task with hp > 1 is a boss: something too big for one tick.
+   each session lands a hit. it only becomes done:true when its hp
+   is gone, so the CLI and the Actions see an ordinary open task
+   the whole time and the XP table never moves. `hp`/`hits`/`steps`
+   are fields they don't read and will carry through untouched. */
+function isBoss(t) { return (t.hp || 1) > 1 && t.quest !== 'daily'; }
+function bossHits(t) { return Math.min(t.hp || 1, t.hits || 0); }
+function bossLeft(t) { return Math.max(0, (t.hp || 1) - bossHits(t)); }
+
+function hpBar(t) {
+  const hp = t.hp || 1, left = bossLeft(t), w = 10;
+  const f = Math.round(left / hp * w);
+  return '[' + '█'.repeat(f) + '░'.repeat(w - f) + '] ' + left + '/' + hp;
+}
+
+/* steps — a named checklist inside one task, for the things that
+   aren't "more sessions" but "these four specific parts". */
+function stepsOf(t) { return Array.isArray(t.steps) ? t.steps : []; }
+function stepsDone(t) { return stepsOf(t).filter(s => s.done).length; }
+
+function isOverdue(t) { return t.dueDate && !t.done && t.dueDate < today(); }
+function isDueToday(t) { return t.dueDate && !t.done && t.dueDate === today(); }
+
+/* ── daily shuffle — same seeded rotation as v1 ─────────────── */
+function dailySeed() {
+  const d = today(); let h = 0;
+  for (let i = 0; i < d.length; i++) h = ((h << 5) - h + d.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function shuffleDailies(ds) {
+  const seed = dailySeed(), groups = {};
+  ds.forEach(t => (groups[getTaskCat(t)] = groups[getTaskCat(t)] || []).push(t));
+  const out = [];
+  CAT_KEYS.forEach(cat => {
+    const g = groups[cat] || []; let s = seed;
+    for (let i = g.length - 1; i > 0; i--) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      const j = s % (i + 1);
+      [g[i], g[j]] = [g[j], g[i]];
+    }
+    out.push(...g);
+  });
+  return out;
+}
+function isDailyDoneToday(t) { return (t.completedDates || []).includes(today()); }
+
+/* ── the map ─────────────────────────────────────────────────
+   three regions, one per pillar. exploration is breadth, not xp:
+   how many distinct things you've actually done there and how many
+   habits have taken root — so grinding one task forever does not
+   fill the bar, and a neglected region reads as neglected. */
+const REGIONS = {
+  health:        { name: 'the near country', glyph: '💪' },
+  relationships: { name: 'the long shore',   glyph: '🤝' },
+  wealth:        { name: 'the high road',    glyph: '💰' }
+};
+
+function exploration(cat) {
+  const all = [...tasks, ...archivedTasks].filter(t => getTaskCat(t) === cat && t.quest !== 'reward');
+  const distinct = new Set(all.filter(t => t.done || (t.completedDates || []).length)
+    .map(t => (t.text || '').toLowerCase().trim()));
+  const habits = tasks.filter(t => t.quest === 'daily' && getTaskCat(t) === cat && habitLevel(t) >= 2).length;
+  const bosses = all.filter(t => t.done && (t.hp || 1) > 1).length;
+  return Math.min(100, distinct.size * 4 + habits * 9 + bosses * 8);
+}
+
+function renderMap() {
+  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
+  let o = '── the map ──────────────────────────────────\n';
+  CAT_KEYS.forEach(c => {
+    const r = REGIONS[c], xp = catXP(c), share = Math.round(xp / total * 100);
+    const ex = exploration(c);
+    const open = tasks.filter(t => getTaskCat(t) === c && !t.done && t.quest !== 'daily' && t.quest !== 'reward');
+    const bosses = open.filter(isBoss).length;
+    o += r.glyph + ' ' + c.toUpperCase() + ' — ' + r.name + '  lvl ' + getLevel(xp) + '\n';
+    o += '   [' + progressBar(ex, 100, 10) + '] ' + ex + '% explored · ' +
+         open.length + ' open' + (bosses ? ' · ' + bosses + ' boss' + (bosses > 1 ? 'es' : '') : '') + '\n';
+    o += '   ' + (share < 15 ? '⚠ neglected — ' + share + '% of your effort'
+                             : share > 60 ? 'dominant — ' + share + '% of your effort'
+                             : 'steady — ' + share + '% of your effort') + '\n';
+  });
+  document.getElementById('map').textContent = o;
+}
+
+/* ── what the world wants from you next ──────────────────────
+   an open world is only useful if it tells you where to go. this
+   reads the same data the stats block does and answers one
+   question: what is the highest-value thing to do right now. */
+function nextMove() {
+  const b = bonusBreakdown();
+  const open = tasks.filter(t => !t.done && t.quest !== 'reward' && t.quest !== 'daily');
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const undone = dailies.filter(t => !isDailyDoneToday(t));
+
+  const od = open.filter(isOverdue).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  if (od.length) return ['⚠', 'overdue — ' + od[0].text + ' (due ' + od[0].dueDate + ')'];
+
+  const due = open.filter(isDueToday);
+  if (due.length) return ['📢', 'due today — ' + due[0].text];
+
+  const nearlyDead = open.filter(t => isBoss(t) && bossLeft(t) === 1);
+  if (nearlyDead.length) return ['⚔', 'one session left — ' + nearlyDead[0].text];
+
+  if (b.todayCount === 2) {
+    const missing = CAT_KEYS.find(c => !b.todayCats.has(c));
+    const pick = undone.find(t => getTaskCat(t) === missing) || open.find(t => getTaskCat(t) === missing);
+    return ['⭐', 'one ' + missing + ' task closes tri-pillar (+' + TRI_XP + ') — ' +
+      (pick ? pick.text : 'anything in ' + missing)];
+  }
+
+  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
+  const weak = CAT_KEYS.filter(c => catXP(c) / total * 100 < 15)
+    .sort((a, b) => catXP(a) - catXP(b))[0];
+  if (weak) {
+    const pick = undone.find(t => getTaskCat(t) === weak) || open.find(t => getTaskCat(t) === weak);
+    if (pick) return [REGIONS[weak].glyph, weak + ' is failing at ' +
+      Math.round(catXP(weak) / total * 100) + '% — ' + pick.text];
+  }
+
+  const risk = dailies.filter(t => habitStreak(t) >= 3 && !isDailyDoneToday(t))
+    .sort((a, b) => habitStreak(b) - habitStreak(a))[0];
+  if (risk) return ['🔥', habitStreak(risk) + '-day streak at risk — ' + risk.text];
+
+  if (undone.length) return ['·', undone.length + ' dailies left — ' + undone[0].text];
+  const boss = open.filter(isBoss)[0];
+  if (boss) return ['⚔', 'chip at ' + boss.text + ' ' + hpBar(boss)];
+  if (open.length) return ['·', open[0].text];
+  return ['✓', 'everything on the board is clear'];
+}
+
+function renderNextMove() {
+  const [glyph, text] = nextMove();
+  document.getElementById('next-move').textContent = '▶ next: ' + glyph + ' ' + text;
+}
+
+/* ── stats block ────────────────────────────────────────────── */
+function renderRPGStats() {
+  const total = totalXP(), b = bonusBreakdown();
+  const h = catXP('health'), r = catXP('relationships'), w = catXP('wealth');
+  const sum = (h + r + w) || 1;
+  const hP = Math.round(h / sum * 100), rP = Math.round(r / sum * 100), wP = Math.max(0, 100 - hP - rP);
+
+  const p = levelProgress(total), hp = levelProgress(h), rp = levelProgress(r), wp = levelProgress(w);
+
+  let o = '⚔️ player lvl ' + p.lvl + '  (' + p.curLvlXP + ' / ' + p.reqLvlXP + ' xp · ' + total + ' lifetime xp)\n';
+  o += '  [' + progressBar(p.curLvlXP, p.reqLvlXP, 20) + ']\n\n';
+  o += '💪 health        lvl ' + hp.lvl + '  [' + progressBar(hp.curLvlXP, hp.reqLvlXP, 12) + ']  ' + hp.curLvlXP + ' / ' + hp.reqLvlXP + ' xp\n';
+  o += '🤝 relationships lvl ' + rp.lvl + '  [' + progressBar(rp.curLvlXP, rp.reqLvlXP, 12) + ']  ' + rp.curLvlXP + ' / ' + rp.reqLvlXP + ' xp\n';
+  o += '💰 wealth        lvl ' + wp.lvl + '  [' + progressBar(wp.curLvlXP, wp.reqLvlXP, 12) + ']  ' + wp.curLvlXP + ' / ' + wp.reqLvlXP + ' xp\n\n';
+
+  o += 'balance:\n';
+  o += '  💪 health ' + hP + '%' + (hP < 15 ? ' (low)' : '') + ' [' + progressBar(hP, 100, 8) + ']\n';
+  o += '  🤝 rel    ' + rP + '%' + (rP < 15 ? ' (low)' : '') + ' [' + progressBar(rP, 100, 8) + ']\n';
+  o += '  💰 wealth ' + wP + '%' + (wP < 15 ? ' (low)' : '') + ' [' + progressBar(wP, 100, 8) + ']\n';
+
+  const tc = b.todayCats;
+  const box = c => tc.has(c) ? '■' : '□';
+  o += 'tri-pillar [' + box('health') + ' ' + box('relationships') + ' ' + box('wealth') + '] ';
+  if (b.todayCount >= 3)      o += '3/3 active today (+' + TRI_XP + ' xp bonus)\n';
+  else if (b.todayCount === 2) o += '2/3 — pair bonus live (+' + PAIR_XP + '), +' + TRI_XP + ' at 3/3\n';
+  else                         o += b.todayCount + '/3 complete (+' + PAIR_XP + ' at 2/3, +' + TRI_XP + ' at 3/3)\n';
+
+  const streak = calcStreak();
+  if (streak > 0) o += '🔥 ' + streak + ' day streak\n';
+  const s = calcStats();
+  o += 'this week: ' + s.added + ' added, ' + s.completed + ' completed\n';
+
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const doneD = dailies.filter(isDailyDoneToday).length;
+  if (dailies.length) o += 'dailies today: ' + doneD + '/' + dailies.length + ' [' + progressBar(doneD, dailies.length, 12) + ']\n';
+
+  o += 'xp to spend: ' + availableXP() + '  (' + spentXP() + ' spent on rewards)';
+
+  document.getElementById('rpg-stats').textContent = o;
+}
+
+/* ── rewards — same reward-task shape v1 already writes, so the
+   anime pass keeps working and the CLI still sees them ───────── */
+function shopItems() {
+  try {
+    const s = JSON.parse(localStorage.getItem('playable_shop'));
+    if (Array.isArray(s) && s.length) return s;
+  } catch (e) {}
+  return [{ id: 'anime_pass', name: '🍿 1 hour anime pass', cost: 0, daily: true }];
+}
+function saveShop(items) { localStorage.setItem('playable_shop', JSON.stringify(items)); }
+
+function animeStatus() {
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const doneToday = dailies.filter(isDailyDoneToday);
+  return {
+    total: dailies.length,
+    done: doneToday.length,
+    allDone: dailies.length > 0 && doneToday.length === dailies.length,
+    claimed: [...tasks, ...archivedTasks].some(t =>
+      t.quest === 'reward' && t.rewardType === 'anime_pass' && t.rewardDate === today() && t.claimed)
+  };
+}
+
+async function claimAnimePass() {
+  const st = animeStatus();
+  if (!st.allDone || st.claimed) return;
+  tasks.push({
+    text: '🍿 1 hour anime pass (' + today() + ')',
+    quest: 'reward', rewardType: 'anime_pass', rewardDate: today(),
+    claimed: true, claimedAt: new Date().toISOString(),
+    done: true, addedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+    priority: 0, dueDate: null, category: 'health', cost: 0
+  });
+  banner('🍿 1 HOUR ANIME PASS CLAIMED — enjoy your show');
+  render(); await saveTasks();
+}
+
+async function buyReward(id) {
+  const item = shopItems().find(i => i.id === id);
+  if (!item || availableXP() < item.cost) return;
+  tasks.push({
+    text: item.name + ' (' + today() + ')',
+    quest: 'reward', rewardType: item.id, rewardDate: today(),
+    claimed: true, claimedAt: new Date().toISOString(), cost: item.cost,
+    done: true, addedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+    priority: 0, dueDate: null, category: 'health'
+  });
+  banner('redeemed — ' + item.name);
+  render(); await saveTasks();
+}
+
+function addReward(e) {
+  e.preventDefault();
+  const n = document.getElementById('r-name').value.trim();
+  const c = parseInt(document.getElementById('r-cost').value, 10);
+  if (!n || !(c > 0)) return;
+  saveShop([...shopItems(), { id: 'r' + Date.now().toString(36), name: n, cost: c }]);
+  document.getElementById('r-name').value = '';
+  render();
+}
+function removeReward(id) { saveShop(shopItems().filter(i => i.id !== id)); render(); }
+
+function renderShop() {
+  const st = animeStatus(), avail = availableXP();
+  const el = document.getElementById('shop');
+  el.innerHTML = shopItems().map(i => {
+    if (i.daily) {
+      if (i.claimed) return '';
+      const label = st.claimed ? 'claimed today'
+        : st.allDone ? '<button onclick="claimAnimePass()">claim — all dailies done</button>'
+        : '<span class="hab">' + st.done + '/' + st.total + ' dailies (' + (st.total - st.done) + ' more)</span>';
+      return '<div>' + i.name + ' — free at 100% dailies — ' + label + '</div>';
+    }
+    const can = avail >= i.cost;
+    return '<div>' + i.name + ' — ' + i.cost + ' xp — ' +
+      '<button onclick="buyReward(\'' + i.id + '\')"' + (can ? '' : ' disabled') + '>redeem</button> ' +
+      '<button onclick="removeReward(\'' + i.id + '\')">×</button></div>';
+  }).join('');
+}
+
+function renderVault() {
+  const all = [...tasks, ...archivedTasks].filter(t => t.quest === 'reward' && t.claimed);
+  const el = document.getElementById('rewards-vault-list');
+  if (!all.length) { el.innerHTML = '<li>(nothing claimed yet)</li>'; return; }
+  all.sort((a, b) => new Date(b.claimedAt || b.rewardDate) - new Date(a.claimedAt || a.rewardDate));
+  el.innerHTML = all.map(r =>
+    '<li>' + esc(r.text) + (r.cost ? ' — ' + r.cost + ' xp' : '') + '</li>').join('');
+}
+
+function renderHabits() {
+  const ds = tasks.filter(t => t.quest === 'daily');
+  const el = document.getElementById('habits');
+  if (!ds.length) { el.innerHTML = '<p class="hab">no dailies yet</p>'; return; }
+  el.innerHTML = ds
+    .map(t => ({ t, n: (t.completedDates || []).length, s: habitStreak(t) }))
+    .sort((a, b) => b.n - a.n)
+    .map(({ t, n, s }) =>
+      '<div>' + (CATS[getTaskCat(t)] || '') + ' ' + esc(t.text) +
+      ' — lv ' + habitLevel(t) + ' · ' + n + '×' +
+      (s > 1 ? ' · 🔥' + s : '') + '</div>').join('');
+}
+
+function buildXPLogs() {
+  const logs = [];
+  [...tasks, ...archivedTasks].forEach(t => {
+    const cat = getTaskCat(t);
+    if (t.quest === 'daily') {
+      (t.completedDates || []).forEach(ds =>
+        logs.push({ xp: 25, cat, text: t.text, ts: ds, sort: new Date(ds).getTime() || 0 }));
+    } else if (t.done) {
+      const ts = t.completedAt || t.addedAt || '';
+      logs.push({ xp: xpFromTask(t), cat, text: t.text, ts, sort: ts ? new Date(ts).getTime() || 0 : 0 });
+    }
+  });
+  const by = catsByDate();
+  Object.keys(by).forEach(ds => {
+    const n = CAT_KEYS.filter(c => by[ds].has(c)).length;
+    if (n >= 3) logs.push({ xp: TRI_XP, cat: 'bonus', text: 'tri-pillar', ts: ds, sort: new Date(ds).getTime() || 0 });
+    else if (n === 2) logs.push({ xp: PAIR_XP, cat: 'bonus', text: 'pair', ts: ds, sort: new Date(ds).getTime() || 0 });
+  });
+  return logs.sort((a, b) => b.sort - a.sort);
+}
+
+function fmt(ts) {
+  if (!ts) return '';
+  const d = new Date(ts); if (isNaN(d)) return ts;
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function renderXPLogs() {
+  const logs = buildXPLogs(), el = document.getElementById('xp-logs-list');
+  el.innerHTML = logs.length
+    ? logs.slice(0, 200).map(l => '<li>+' + l.xp + ' xp (' + l.cat + ' ' +
+        (l.cat === 'bonus' ? '🌟' : CATS[l.cat] || '') + ') — ' + esc(l.text) +
+        (l.ts ? ' — ' + fmt(l.ts) : '') + '</li>').join('')
+    : '<li>(no xp logs yet)</li>';
+}
+
+/* ── auth ───────────────────────────────────────────────────── */
+function init() {
+  if (!token || !repo) {
+    document.getElementById('auth').style.display = '';
+    document.getElementById('app').style.display = 'none';
+  } else {
+    document.getElementById('auth').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    loadTasks();
+  }
+}
+function saveToken() {
+  repo = document.getElementById('repo-input').value.trim();
+  token = document.getElementById('token-input').value.trim();
+  if (!repo || !token) return;
+  localStorage.setItem('gh_repo', repo);
+  localStorage.setItem('gh_token', token);
+  init();
+}
+function clearToken() {
+  token = ''; repo = '';
+  localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo');
+  init();
+}
+
+/* ── data ───────────────────────────────────────────────────── */
+function backfill(list) {
+  list.forEach(t => {
+    if (t.priority === undefined) t.priority = 0;
+    if (t.dueDate === undefined) t.dueDate = null;
+    if (t.category === undefined) t.category = 'health';
+    if (t.quest === undefined) t.quest = 'main';
+  });
+  return list;
+}
+
+async function loadTasks() {
+  status('loading...');
+  try {
+    const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE,
+      { headers: { Authorization: 'token ' + token } });
+    if (!res.ok) throw new Error('fetch failed: ' + res.status);
+    const data = await res.json();
+    sha = data.sha;
+    tasks = backfill(JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))))));
+    await loadArchive();
+    render();
+    status('');
+  } catch (e) {
+    status('error: ' + e.message);
+  }
+}
+
+async function loadArchive() {
+  try {
+    const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + ARCHIVE_FILE,
+      { headers: { Authorization: 'token ' + token } });
+    if (!res.ok) { archivedTasks = []; return; }
+    const data = await res.json();
+    archivedTasks = backfill(JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))))));
+  } catch (e) { archivedTasks = []; }
+}
+
+async function freshSha() {
+  const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE,
+    { headers: { Authorization: 'token ' + token } });
+  if (!res.ok) throw new Error('sha failed: ' + res.status);
+  return (await res.json()).sha;
+}
+
+async function saveTasks() {
+  status('saving...');
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(tasks, null, 2) + '\n')));
+    const put = s => fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE, {
+      method: 'PUT',
+      headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'update tasks', content, sha: s })
+    });
+    let res = await put(sha);
+    if (res.status === 409 || res.status === 422) { sha = await freshSha(); res = await put(sha); }
+    if (!res.ok) throw new Error('save failed: ' + res.status);
+    sha = (await res.json()).content.sha;
+    status('saved ✓');
+    setTimeout(() => status(''), 1000);
+  } catch (e) {
+    status('error: ' + e.message + ' — your tick is still on screen, try again');
+  }
+}
+
+/* ── render ─────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function setFilter(c) {
+  currentFilter = c;
+  document.querySelectorAll('#filters button').forEach(b =>
+    b.style.fontWeight = b.getAttribute('data-filter') === c ? 'bold' : 'normal');
+  render();
+}
+
+function render() {
+  renderNextMove(); renderMap(); renderRPGStats(); renderShop(); renderVault(); renderHabits(); renderXPLogs();
+
+  const filtered = tasks
+    .map((t, i) => ({ t, i }))
+    .filter(({ t }) => t.quest !== 'reward')
+    .filter(({ t }) => currentFilter === 'all' || getTaskCat(t) === currentFilter);
+
+  const pick = q => filtered.filter(({ t }) => t.quest === q);
+  const sortFn = (a, b) => {
+    if (a.t.done !== b.t.done) return a.t.done ? 1 : -1;
+    const rank = { health: 1, relationships: 2, wealth: 3 };
+    const ca = rank[getTaskCat(a.t)] || 1, cb = rank[getTaskCat(b.t)] || 1;
+    if (ca !== cb) return ca - cb;
+    return (b.t.priority || 0) - (a.t.priority || 0);
+  };
+
+  const dailies = shuffleDailies(pick('daily').map(x => x.t))
+    .map(t => ({ t, i: tasks.indexOf(t) }));
+  const mains = pick('main').sort(sortFn);
+  const stories = pick('story').sort(sortFn);
+  const sides = pick('side').sort(sortFn);
+
+  let html = '';
+
+  const section = (title, items, isDaily) => {
+    if (!items.length && title !== 'story quests') return;
+    html += '<p>— ' + title + ' —</p><ul>';
+    if (!items.length) { html += '<li>(none active)</li></ul>'; return; }
+    items.forEach(({ t, i }) => {
+      const done = isDaily ? isDailyDoneToday(t) : t.done;
+      const cat = CATS[getTaskCat(t)] || '';
+      let extra = '';
+      if (isDaily) {
+        const s = habitStreak(t), n = (t.completedDates || []).length;
+        extra = ' <span class="hab">lv' + habitLevel(t) + (s > 1 ? ' 🔥' + s : '') + ' ·' + n + '×</span>';
+      }
+      if (isOverdue(t)) extra += ' <span class="warn">⚠️ overdue ' + t.dueDate + '</span>';
+      else if (isDueToday(t)) extra += ' <span class="warn">📢 due today</span>';
+
+      const boss = !isDaily && isBoss(t) && !t.done;
+      const st = stepsOf(t);
+
+      html += '<li><input type="checkbox"' + (done ? ' checked' : '') +
+        ' onchange="' + (isDaily ? 'toggleDaily' : 'toggle') + '(' + i + ')"> ' +
+        cat + ' <span ondblclick="editTask(' + i + ')" title="double click to edit">' +
+        (done ? '<s>' + esc(t.text) + '</s>' : esc(t.text)) + '</span>' + extra;
+
+      if (boss) {
+        html += ' <span class="hab">' + hpBar(t) + '</span> ' +
+          '<button onclick="strike(' + i + ')">strike</button>';
+        if (bossHits(t)) html += ' <button onclick="unstrike(' + i + ')">−</button>';
+      }
+      if (st.length) {
+        html += ' <span class="hab">' + stepsDone(t) + '/' + st.length + ' steps</span><ul>';
+        st.forEach((sp, si) => {
+          html += '<li><input type="checkbox"' + (sp.done ? ' checked' : '') +
+            ' onchange="toggleStep(' + i + ',' + si + ')"> ' +
+            (sp.done ? '<s>' + esc(sp.text) + '</s>' : esc(sp.text)) + '</li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    html += '</ul>';
+  };
+
+  section('daily quests', dailies, true);
+  section('main quests', mains, false);
+  section('story quests', stories, false);
+  section('side quests', sides, false);
+
+  document.getElementById('list').innerHTML = html;
+}
+
+function toggleMore() {
+  moreVisible = !moreVisible;
+  document.getElementById('more').style.display = moreVisible ? '' : 'none';
+  document.getElementById('more-btn').textContent = moreVisible ? 'hide options' : 'show options';
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = '';
+  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 1800);
+}
+function banner(msg) {
+  const el = document.getElementById('banner');
+  el.textContent = msg; el.style.display = '';
+  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 4000);
+}
+
+/* ── actions ────────────────────────────────────────────────── */
+async function addTask(e) {
+  e.preventDefault();
+  const inp = document.getElementById('inp');
+  const v = inp.value.trim(); if (!v) return;
+  const quest = document.getElementById('quest-input').value;
+  const t = {
+    text: v, quest, done: false,
+    addedAt: new Date().toISOString(), completedAt: null,
+    priority: 0, dueDate: null,
+    category: document.getElementById('cat-input').value
+  };
+  if (quest === 'daily') t.completedDates = [];
+  const hp = parseInt(document.getElementById('hp-input').value, 10);
+  if (quest !== 'daily' && hp > 1) { t.hp = hp; t.hits = 0; }
+  tasks.push(t);
+  inp.value = '';
+  document.getElementById('hp-input').value = '1';
+  render();
+  await saveTasks();
+}
+
+function announce(cat, gained, before) {
+  toast('+' + gained + ' xp (' + cat + ')');
+  const after = catXP(cat);
+  if (getLevel(after) > getLevel(before)) banner('🎉 ' + cat + ' → lvl ' + getLevel(after));
+  const b = bonusBreakdown();
+  if (b.todayCount === 2) toast('+' + PAIR_XP + ' pair bonus');
+  if (b.todayCount === 3) banner('⭐ tri-pillar 3/3 — +' + TRI_XP + ' xp');
+}
+
+async function toggle(i) {
+  const t = tasks[i], was = t.done;
+  const cat = getTaskCat(t), before = catXP(cat);
+  t.done = !t.done;
+  t.completedAt = t.done ? new Date().toISOString() : null;
+  if (t.done && !was) announce(cat, xpFromTask(t), before);
+  render();
+  await saveTasks();
+}
+
+async function toggleDaily(i) {
+  const t = tasks[i];
+  if (!t.completedDates) t.completedDates = [];
+  const cat = getTaskCat(t), before = catXP(cat);
+  const at = t.completedDates.indexOf(today());
+  if (at >= 0) t.completedDates.splice(at, 1);
+  else {
+    t.completedDates.push(today());
+    announce(cat, 25, before);
+    const st = animeStatus();
+    if (st.allDone && !st.claimed) banner('🎉 all dailies done — 🍿 anime pass unlocked');
+  }
+  render();
+  await saveTasks();
+}
+
+/* land one session on a boss. the last hit is what actually
+   completes the task, so the XP arrives exactly as v1 paid it. */
+async function strike(i) {
+  const t = tasks[i];
+  t.hits = bossHits(t) + 1;
+  if (bossLeft(t) <= 0) {
+    const cat = getTaskCat(t), before = catXP(cat);
+    t.done = true;
+    t.completedAt = new Date().toISOString();
+    banner('⚔ defeated — ' + t.text);
+    announce(cat, xpFromTask(t), before);
+  } else {
+    toast(t.text + ' — ' + bossLeft(t) + ' left');
+  }
+  render();
+  await saveTasks();
+}
+
+async function unstrike(i) {
+  const t = tasks[i];
+  t.hits = Math.max(0, bossHits(t) - 1);
+  if (t.done) { t.done = false; t.completedAt = null; }
+  render();
+  await saveTasks();
+}
+
+async function toggleStep(i, si) {
+  const t = tasks[i], st = stepsOf(t);
+  if (!st[si]) return;
+  st[si].done = !st[si].done;
+  if (st.length && st.every(x => x.done) && !t.done) {
+    const cat = getTaskCat(t), before = catXP(cat);
+    t.done = true;
+    t.completedAt = new Date().toISOString();
+    banner('quest complete — ' + t.text);
+    announce(cat, xpFromTask(t), before);
+  } else if (t.done && !st.every(x => x.done)) {
+    t.done = false; t.completedAt = null;
+  }
+  render();
+  await saveTasks();
+}
+
+async function editTask(i) {
+  const t = tasks[i];
+  const text = prompt('edit task text:', t.text);
+  if (text !== null && text.trim()) t.text = text.trim();
+  const cat = prompt('category (health / relationships / wealth):', t.category || 'health');
+  if (cat && CAT_KEYS.includes(cat.trim().toLowerCase())) t.category = cat.trim().toLowerCase();
+  const q = prompt('quest (daily / main / side / story):', t.quest || 'main');
+  if (q && ['daily', 'main', 'side', 'story'].includes(q.trim().toLowerCase())) {
+    t.quest = q.trim().toLowerCase();
+    if (t.quest === 'daily' && !t.completedDates) t.completedDates = [];
+  }
+  const due = prompt('due date (YYYY-MM-DD, blank for none):', t.dueDate || '');
+  t.dueDate = due && /^\d{4}-\d{2}-\d{2}$/.test(due.trim()) ? due.trim() : null;
+
+  if (t.quest !== 'daily') {
+    const hp = prompt('how many sessions will this take? (1 = a normal task)', String(t.hp || 1));
+    const n = parseInt(hp, 10);
+    if (n > 1) { t.hp = n; t.hits = Math.min(t.hits || 0, n); }
+    else { delete t.hp; delete t.hits; }
+
+    const cur = stepsOf(t).map(x => x.text).join('\n');
+    const raw = prompt('steps, one per line (blank for none):', cur);
+    if (raw !== null) {
+      const lines = raw.split('\n').map(x => x.trim()).filter(Boolean);
+      const was = stepsOf(t);
+      t.steps = lines.map(text => ({ text, done: (was.find(x => x.text === text) || {}).done || false }));
+      if (!t.steps.length) delete t.steps;
+    }
+  }
+  render();
+  await saveTasks();
+}
+
+setFilter('all');
+init();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
