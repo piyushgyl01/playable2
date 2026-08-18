@@ -6,38 +6,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest.json">
 <style>
-body{font-family:system-ui,-apple-system,sans-serif;padding:16px;max-width:760px;margin:0 auto}
-pre{white-space:pre-wrap;font-size:13px}
-li{margin:3px 0}
-.hab{color:#666;font-size:12px}
-.warn{color:#b00}
-.ok{color:#070}
-#toast,#banner{position:fixed;right:12px;bottom:12px;background:#000;color:#fff;padding:8px 12px;border-radius:6px}
-#banner{bottom:56px;background:#070}
+body{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;padding:14px;max-width:780px;
+ margin:0 auto;line-height:1.5;font-size:14px}
+pre{white-space:pre-wrap;margin:0 0 4px;font:inherit}
+h1{font-size:18px;margin:0 0 2px;letter-spacing:.06em}
+hr{border:0;border-top:1px solid currentColor;opacity:.18;margin:14px 0}
+ul{margin:4px 0 10px;padding-left:0;list-style:none}
+li{margin:2px 0}
+button{font:inherit;cursor:pointer;padding:1px 7px}
+input,select{font:inherit;padding:2px 5px}
+.d{opacity:.45}
+.q{opacity:.6;font-size:13px}
+.on{font-weight:bold;text-decoration:underline}
+.hide{display:none}
+#toast{position:fixed;right:10px;bottom:10px;padding:7px 12px;border:1px solid;background:Canvas}
 </style>
 </head>
 <body>
 
 <h1>playable</h1>
+<div class="q" id="sub">a save file for your actual life</div>
 
-<div id="auth" style="display:none">
-  <p>repo (user/repo):</p>
-  <input id="repo-input" placeholder="piyushgyl01/playable">
-  <p>paste a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable-app" target="_blank">github token</a> (repo scope):</p>
-  <input id="token-input" placeholder="ghp_...">
-  <br><br>
-  <button onclick="saveToken()">save</button>
+<div id="auth" class="hide">
+  <p>repo (user/repo):<br><input id="repo-input" placeholder="piyushgyl01/playable" size="28"></p>
+  <p>a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable" target="_blank">github token</a> with repo scope:<br>
+     <input id="token-input" placeholder="ghp_..." size="28"></p>
+  <button onclick="saveToken()">open the save</button>
 </div>
 
-<div id="app" style="display:none">
-  <pre id="read"></pre>
-  <pre id="next-move"></pre>
-  <pre id="map"></pre>
-  <pre id="rpg-stats"></pre>
+<div id="app" class="hide">
+
+  <hr><pre id="who"></pre>
+  <hr><pre id="read"></pre>
+  <hr><pre id="day"></pre>
+  <div id="modes"></div>
+  <div id="rest"></div>
+
+  <hr><div id="quests"></div>
 
   <form onsubmit="addTask(event)">
-    <input id="inp" placeholder="what needs doing?" autofocus>
-    <input id="hp-input" type="number" min="1" value="1" style="width:56px" title="how many sessions will this take? more than 1 makes it a boss">
+    <input id="inp" placeholder="what needs doing?" size="24">
     <select id="cat-input">
       <option value="health">health</option>
       <option value="relationships">relationships</option>
@@ -52,74 +60,137 @@ li{margin:3px 0}
     <button type="submit">add</button>
   </form>
 
-  <p id="filters">
-    filter:
-    <button data-filter="all" onclick="setFilter('all')">all</button>
-    <button data-filter="health" onclick="setFilter('health')">health</button>
-    <button data-filter="relationships" onclick="setFilter('relationships')">relationships</button>
-    <button data-filter="wealth" onclick="setFilter('wealth')">wealth</button>
-  </p>
+  <hr><pre id="pillars"></pre>
 
-  <div id="list"></div>
+  <p><button onclick="tog('more')">more</button>
+     <button onclick="tog('ledger')">the ledger</button>
+     <button onclick="tog('chapters')">chapters</button></p>
 
-  <br>
-  <button onclick="toggleMore()" id="more-btn">show options</button>
+  <div id="chapters" class="hide"></div>
 
-  <div id="more" style="display:none">
-    <p>— reward shop —</p>
-    <div id="shop"></div>
-    <form onsubmit="addReward(event)">
-      <input id="r-name" placeholder="a reward you want" size="24">
-      <input id="r-cost" type="number" value="100" min="1" style="width:70px"> xp
-      <button type="submit">add reward</button>
+  <div id="more" class="hide">
+    <hr><b>arcs</b> <span class="q">— the chapters you're trying to live</span>
+    <div id="arcs"></div>
+    <form onsubmit="addArc(event)">
+      <input id="a-name" placeholder="name an arc" size="22">
+      <button type="submit">begin</button>
     </form>
 
-    <p>— rewards vault —</p>
-    <ul id="rewards-vault-list"></ul>
+    <hr><b>rewards</b> <span class="q">— what the xp is actually for</span>
+    <div id="shop"></div>
+    <form onsubmit="addReward(event)">
+      <input id="r-name" placeholder="a real reward" size="18">
+      <input id="r-cost" type="number" value="500" min="1" style="width:64px">
+      <button type="submit">add</button>
+    </form>
+    <div id="vault"></div>
 
-    <p>— habits —</p>
-    <div id="habits"></div>
-
-    <p>— xp logs —</p>
-    <ul id="xp-logs-list"></ul>
-
-    <p><small><a href="#" onclick="clearToken();return false">change token / repo</a></small></p>
+    <hr><span class="q"><a href="#" onclick="clearToken();return false">change token / repo</a></span>
   </div>
+
+  <div id="ledger" class="hide"></div>
 </div>
 
-<p id="status"></p>
-<div id="toast" style="display:none"></div>
-<div id="banner" style="display:none"></div>
+<p id="status" class="q"></p>
+<div id="toast" class="hide"></div>
 
 <script>
-/* ─────────────────────────────────────────────────────────────
-   playable — same tasks.json contract as v1.
-   the CLI and the GitHub Actions keep working against this file
-   unchanged; nothing new is written that they can't ignore.
-   ───────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   playable — a persistent character generated by real life.
 
-const FILE = 'tasks.json';
-const ARCHIVE_FILE = 'archive.json';
+   the engine is the product. it is deterministic: the same events
+   always produce the same state, and every number can name the
+   rule that moved it.
+
+     REAL ACTION → RECORDED EVENT → RULE → PERSISTENT STATE
+
+   tasks.json keeps v1's exact shape and is the event source, so
+   the CLI and the Actions keep working untouched. everything this
+   version adds lives in state.json, which they never read.
+   ═══════════════════════════════════════════════════════════════ */
+
 const CATS = { health: '💪', relationships: '🤝', wealth: '💰' };
-const CAT_KEYS = ['health', 'relationships', 'wealth'];
+const CK = ['health', 'relationships', 'wealth'];
+
+/* what each number is allowed to claim. it is evidence of
+   investment — never a measurement of the thing itself. */
+const MEANS = {
+  health: 'evidence you invested in your body',
+  relationships: 'evidence you invested in people',
+  wealth: 'evidence you invested in what you are building'
+};
+
+/* effort. normal is 1.0, so a save that never logs effort produces
+   numbers identical to v1's. you only diverge by saying so. */
+const EFFORT = {
+  survival: { m: 0.5, label: 'survival', mark: '·', blurb: 'the two-minute version. it counts.' },
+  normal:   { m: 1.0, label: 'normal',   mark: '',  blurb: '' },
+  hard:     { m: 2.0, label: 'hard',     mark: '!', blurb: 'the version that cost you something.' }
+};
+
+/* the day declares its own difficulty. this does not change what
+   anything is worth — it changes what counts as clearing the day,
+   so a bad day can still be won. */
+const MODES = {
+  full:     { label: 'full',     frac: 1.00, blurb: 'everything on the board' },
+  normal:   { label: 'normal',   frac: 0.60, blurb: 'a real day' },
+  low:      { label: 'low',      frac: 0.30, blurb: 'not much left in the tank' },
+  recovery: { label: 'recovery', frac: 0.00, blurb: 'resting is the quest' }
+};
+
+const PAIR_XP = 25, TRI_XP = 100, REST_XP = 25;
 
 let repo = localStorage.getItem('gh_repo') || '';
 let token = localStorage.getItem('gh_token') || '';
-let sha = '';
-let tasks = [];
-let archivedTasks = [];
-let moreVisible = false;
-let currentFilter = 'all';
+let sha = '', stateSha = null;
+let tasks = [], archived = [];
+let S = null;              // state.json
+let EV = [];               // derived event log
 
-function status(m) { document.getElementById('status').textContent = m; }
+const $ = id => document.getElementById(id);
+const status = m => $('status').textContent = m;
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ── XP — identical to v1, so the numbers never jump ────────── */
-function xpForLevel(L) { return Math.floor(100 * Math.pow(L, 1.5)); }
+/* ── time ────────────────────────────────────────────────────── */
+const dayStr = d => new Date(d).toISOString().slice(0, 10);
+const today = () => dayStr(new Date());
+function addDays(ds, n) {
+  const p = ds.split('-').map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+function weekOf(ds) {                       // monday-anchored week key
+  const p = ds.split('-').map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+function stamp(ts) {
+  const d = new Date(ts); if (isNaN(d)) return String(ts);
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+const MON = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const pretty = ds => MON[+ds.split('-')[1] - 1] + ' ' + (+ds.split('-')[2]);
+
+/* ── xp rules ────────────────────────────────────────────────── */
+const xpForLevel = L => Math.floor(100 * Math.pow(L, 1.5));
 function getLevel(xp) { let l = 1; while (xp >= xpForLevel(l)) l++; return l; }
+function levelProgress(xp) {
+  const l = getLevel(xp), p = l > 1 ? xpForLevel(l - 1) : 0, n = xpForLevel(l);
+  return { lvl: l, cur: xp - p, req: n - p };
+}
+function bar(cur, max, w) {
+  const f = Math.max(0, Math.min(w, Math.floor(cur / (max || 1) * w)));
+  return '█'.repeat(f) + '░'.repeat(w - f);
+}
 
-function xpFromTask(t) {
-  if (t.quest === 'daily') return (t.completedDates || []).length * 25;
-  if (!t.done) return 0;
+/* v1's table, unchanged */
+function baseXP(t) {
+  if (t.quest === 'daily') return 25;
   if (t.quest === 'main') return 200;
   if (t.quest === 'story') return 100;
   if (t.quest === 'side') return 50;
@@ -128,924 +199,512 @@ function xpFromTask(t) {
   if (t.priority === 1) return 75;
   return 50;
 }
-
-function getTaskCat(t) {
+function catOf(t) {
   if (t.category) return t.category;
   const s = (t.text || '').toLowerCase();
   if (/(mom|dad|friend|family|talk|call|meet)/.test(s)) return 'relationships';
   if (/(run|gym|walk|breakfast|meds|passport)/.test(s)) return 'health';
   return 'wealth';
 }
+const keyOf = t => (t.addedAt || '') + '|' + (t.text || '');
 
-function dayStr(d) { return new Date(d).toISOString().slice(0, 10); }
-function today() { return dayStr(new Date()); }
-function addDays(ds, n) {
-  const p = ds.split('-').map(Number);
-  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
-/* Which categories were touched on each day — the basis of both the
-   tri-pillar bonus and the new pair bonus. */
-function catsByDate() {
-  const all = [...tasks, ...archivedTasks];
-  const by = {};
-  all.forEach(t => {
-    if (t.quest === 'daily') {
-      (t.completedDates || []).forEach(ds => (by[ds] = by[ds] || new Set()).add(getTaskCat(t)));
-    } else if (t.completedAt) {
-      const ds = dayStr(t.completedAt);
-      (by[ds] = by[ds] || new Set()).add(getTaskCat(t));
-    }
-  });
-  return by;
-}
-
-/* v1 paid +100 only at 3/3. Two of three paid nothing, which made a
-   2-pillar day feel like a failure. Pairs now pay +25 on the way up. */
-const PAIR_XP = 25, TRI_XP = 100;
-
-function bonusBreakdown() {
-  const by = catsByDate();
-  let triDays = 0, pairDays = 0;
-  Object.keys(by).forEach(ds => {
-    const n = CAT_KEYS.filter(c => by[ds].has(c)).length;
-    if (n >= 3) triDays++;
-    else if (n === 2) pairDays++;
-  });
-  const td = today();
-  const tc = by[td] || new Set();
-  return {
-    triDays, pairDays,
-    bonusXP: triDays * TRI_XP + pairDays * PAIR_XP,
-    todayCats: tc,
-    todayCount: CAT_KEYS.filter(c => tc.has(c)).length
-  };
-}
-
-function catXP(cat) {
-  let xp = 0;
-  [...tasks, ...archivedTasks].forEach(t => {
-    if (getTaskCat(t) !== cat) return;
-    if (t.quest === 'daily') xp += (t.completedDates || []).length * 25;
-    else if (t.done) xp += xpFromTask(t);
-  });
-  return xp;
-}
-
-function totalXP() {
-  let xp = 0;
-  [...tasks, ...archivedTasks].forEach(t => {
-    if (t.quest === 'daily') xp += (t.completedDates || []).length * 25;
-    else if (t.done) xp += xpFromTask(t);
-  });
-  return xp + bonusBreakdown().bonusXP;
-}
-
-/* XP already committed to rewards you've taken. Lifetime XP still counts
-   it — this is only the spendable balance. */
-function spentXP() {
-  return [...tasks, ...archivedTasks]
-    .filter(t => t.quest === 'reward' && t.claimed)
-    .reduce((s, t) => s + (t.cost || 0), 0);
-}
-function availableXP() { return totalXP() - spentXP(); }
-
-function progressBar(cur, max, w) {
-  const f = Math.min(w, Math.floor((cur / max) * w));
-  return '█'.repeat(f) + '░'.repeat(w - f);
-}
-function levelProgress(xp) {
-  const l = getLevel(xp), prev = l > 1 ? xpForLevel(l - 1) : 0, next = xpForLevel(l);
-  return { lvl: l, curLvlXP: xp - prev, reqLvlXP: next - prev };
-}
-
-function calcStreak() {
-  const days = new Set();
-  [...tasks, ...archivedTasks].forEach(t => {
-    if (t.quest === 'daily') (t.completedDates || []).forEach(d => days.add(d));
-    else if (t.completedAt) days.add(dayStr(t.completedAt));
-  });
-  let streak = 0, d = new Date();
-  while (true) {
-    const ds = dayStr(d);
-    if (days.has(ds)) { streak++; d.setDate(d.getDate() - 1); }
-    else if (streak === 0) {
-      d.setDate(d.getDate() - 1);
-      if (days.has(dayStr(d))) { streak++; d.setDate(d.getDate() - 1); } else break;
-    } else break;
-  }
-  return streak;
-}
-
-function calcStats() {
-  const weekAgo = new Date(Date.now() - 7 * 864e5);
-  let added = 0, completed = 0;
-  [...tasks, ...archivedTasks].forEach(t => {
-    if (t.addedAt && new Date(t.addedAt) >= weekAgo) added++;
-    if (t.quest === 'daily') (t.completedDates || []).forEach(ds => { if (new Date(ds) >= weekAgo) completed++; });
-    else if (t.completedAt && new Date(t.completedAt) >= weekAgo) completed++;
-  });
-  return { added, completed };
-}
-
-/* ── new: per-habit level and streak, derived from completedDates.
-   no new data is stored — this reads what v1 already writes. ──── */
-function habitStreak(t) {
-  const days = new Set(t.completedDates || []);
-  if (!days.size) return 0;
-  let cur = days.has(today()) ? today() : addDays(today(), -1);
-  let n = 0;
-  while (days.has(cur) && n < 3000) { n++; cur = addDays(cur, -1); }
-  return n;
-}
-function habitLevel(t) { return getLevel((t.completedDates || []).length * 25); }
-
-/* ── bosses ──────────────────────────────────────────────────
-   a task with hp > 1 is a boss: something too big for one tick.
-   each session lands a hit. it only becomes done:true when its hp
-   is gone, so the CLI and the Actions see an ordinary open task
-   the whole time and the XP table never moves. `hp`/`hits`/`steps`
-   are fields they don't read and will carry through untouched. */
-function isBoss(t) { return (t.hp || 1) > 1 && t.quest !== 'daily'; }
-function bossHits(t) { return Math.min(t.hp || 1, t.hits || 0); }
-function bossLeft(t) { return Math.max(0, (t.hp || 1) - bossHits(t)); }
-
-function hpBar(t) {
-  const hp = t.hp || 1, left = bossLeft(t), w = 10;
-  const f = Math.round(left / hp * w);
-  return '[' + '█'.repeat(f) + '░'.repeat(w - f) + '] ' + left + '/' + hp;
-}
-
-/* steps — a named checklist inside one task, for the things that
-   aren't "more sessions" but "these four specific parts". */
-function stepsOf(t) { return Array.isArray(t.steps) ? t.steps : []; }
-function stepsDone(t) { return stepsOf(t).filter(s => s.done).length; }
-
-function isOverdue(t) { return t.dueDate && !t.done && t.dueDate < today(); }
-function isDueToday(t) { return t.dueDate && !t.done && t.dueDate === today(); }
-
-/* ── daily shuffle — same seeded rotation as v1 ─────────────── */
-function dailySeed() {
-  const d = today(); let h = 0;
-  for (let i = 0; i < d.length; i++) h = ((h << 5) - h + d.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-function shuffleDailies(ds) {
-  const seed = dailySeed(), groups = {};
-  ds.forEach(t => (groups[getTaskCat(t)] = groups[getTaskCat(t)] || []).push(t));
-  const out = [];
-  CAT_KEYS.forEach(cat => {
-    const g = groups[cat] || []; let s = seed;
-    for (let i = g.length - 1; i > 0; i--) {
-      s = (s * 1103515245 + 12345) & 0x7fffffff;
-      const j = s % (i + 1);
-      [g[i], g[j]] = [g[j], g[i]];
-    }
-    out.push(...g);
-  });
-  return out;
-}
-function isDailyDoneToday(t) { return (t.completedDates || []).includes(today()); }
-
-/* ── the read ────────────────────────────────────────────────
-   the app's opinion of your state, in sentences. every line is
-   derived from the same rules that move the numbers — nothing is
-   guessed, nothing is generated. it says what the numbers mean so
-   you don't have to translate them yourself. */
-
-function allCompletionDays() {
-  const by = {};
-  [...tasks, ...archivedTasks].forEach(t => {
+/* ── the event log ───────────────────────────────────────────────
+   every number in this app is a fold over this list. nothing is
+   stored that isn't derivable from it, which is what makes "why
+   did that move?" answerable. */
+function buildEvents() {
+  const ev = [];
+  [...tasks, ...archived].forEach(t => {
     if (t.quest === 'reward') return;
-    if (t.quest === 'daily') (t.completedDates || []).forEach(d => by[d] = (by[d] || 0) + 1);
-    else if (t.completedAt) { const d = dayStr(t.completedAt); by[d] = (by[d] || 0) + 1; }
-  });
-  return by;
-}
-
-/* how many dailies you cleared on each day you played */
-function dailyClearByDay() {
-  const by = {};
-  tasks.filter(t => t.quest === 'daily').forEach(t =>
-    (t.completedDates || []).forEach(d => by[d] = (by[d] || 0) + 1));
-  return by;
-}
-
-function weekCount(offsetWeeks) {
-  const end = new Date(Date.now() - offsetWeeks * 7 * 864e5);
-  const start = new Date(end.getTime() - 7 * 864e5);
-  let n = 0;
-  const by = allCompletionDays();
-  Object.keys(by).forEach(d => {
-    const t = new Date(d);
-    if (t >= start && t < end) n += by[d];
-  });
-  return n;
-}
-
-/* how long a pillar has been sitting under 15% of your effort */
-function daysNeglected(cat) {
-  const by = {};
-  [...tasks, ...archivedTasks].forEach(t => {
-    if (t.quest === 'reward') return;
-    const c = getTaskCat(t);
-    if (t.quest === 'daily') (t.completedDates || []).forEach(d => {
-      by[d] = by[d] || {}; by[d][c] = (by[d][c] || 0) + 25;
-    });
-    else if (t.done && t.completedAt) {
-      const d = dayStr(t.completedAt);
-      by[d] = by[d] || {}; by[d][c] = (by[d][c] || 0) + xpFromTask(t);
-    }
-  });
-  const days = Object.keys(by).sort();
-  if (!days.length) return 0;
-  const run = {}; CAT_KEYS.forEach(c => run[c] = 0);
-  const share = [];
-  days.forEach(d => {
-    CAT_KEYS.forEach(c => run[c] += (by[d][c] || 0));
-    const tot = CAT_KEYS.reduce((s, c) => s + run[c], 0) || 1;
-    share.push({ d, pct: run[cat] / tot * 100 });
-  });
-  let n = 0;
-  for (let i = share.length - 1; i >= 0; i--) { if (share[i].pct < 15) n++; else break; }
-  if (!n) return 0;
-  // count real calendar days, not just days you played
-  const from = share[share.length - n].d;
-  return Math.max(n, Math.round((new Date(today()) - new Date(from)) / 864e5));
-}
-
-function ordinalDay(ds) {
-  const m = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-  const p = ds.split('-');
-  return m[+p[1] - 1] + ' ' + (+p[2]);
-}
-
-function renderRead() {
-  const lines = [];
-  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
-  const dailies = tasks.filter(t => t.quest === 'daily');
-  const clears = dailyClearByDay();
-  const doneToday = dailies.filter(isDailyDoneToday).length;
-
-  /* today, judged against your own history — not against 100% */
-  const past = Object.keys(clears).filter(d => d !== today());
-  const best = past.length ? Math.max(...past.map(d => clears[d])) : 0;
-  const bestDay = past.find(d => clears[d] === best);
-  const median = past.length
-    ? [...past.map(d => clears[d])].sort((a, b) => a - b)[Math.floor(past.length / 2)] : 0;
-
-  if (!dailies.length) lines.push('no dailies yet — add a few and this fills in.');
-  else if (doneToday === 0) {
-    lines.push('nothing yet today. your usual day is ' + median + ' of ' + dailies.length + '.');
-  } else if (doneToday > best) {
-    lines.push('today is ' + doneToday + '/' + dailies.length + ' — your best day yet' +
-      (best ? ' (previous best ' + best + ', ' + ordinalDay(bestDay) + ')' : '') + '.');
-  } else if (doneToday >= median) {
-    lines.push('today is ' + doneToday + '/' + dailies.length + ' — above your usual ' + median +
-      '. ' + (best - doneToday > 0 ? (best - doneToday) + ' more ties your record.' : ''));
-  } else {
-    lines.push('today is ' + doneToday + '/' + dailies.length + '. your usual is ' + median +
-      ' — ' + (median - doneToday) + ' more gets you there.');
-  }
-
-  /* what is carrying the run, and what is not */
-  const ranked = CAT_KEYS.map(c => ({ c, pct: Math.round(catXP(c) / total * 100) }))
-    .sort((a, b) => b.pct - a.pct);
-  if (ranked[0].pct >= 55)
-    lines.push(ranked[0].c + ' is carrying this run — ' + ranked[0].pct + '% of everything you have done.');
-  else
-    lines.push('your effort is spread: ' + ranked.map(r => r.c + ' ' + r.pct + '%').join(', ') + '.');
-
-  CAT_KEYS.forEach(c => {
-    const n = daysNeglected(c);
-    if (n >= 3) lines.push(c + ' has been under 15% for ' + n + ' day' + (n > 1 ? 's' : '') + '.');
-  });
-
-  /* momentum */
-  const tw = weekCount(0), lw = weekCount(1);
-  if (tw || lw) {
-    lines.push('this week ' + tw + ' done, last week ' + lw + ' — ' +
-      (tw > lw ? 'climbing.' : tw < lw ? 'slowing.' : 'level.'));
-  }
-
-  /* what is within reach — the anticipation the numbers already contain */
-  const reach = [];
-  CAT_KEYS.forEach(c => {
-    const p = levelProgress(catXP(c)), left = p.reqLvlXP - p.curLvlXP;
-    reach.push({ label: c + ' lvl ' + (p.lvl + 1), n: Math.ceil(left / 25), left });
-  });
-  const pp = levelProgress(totalXP());
-  reach.push({ label: 'player lvl ' + (pp.lvl + 1), n: Math.ceil((pp.reqLvlXP - pp.curLvlXP) / 25), left: pp.reqLvlXP - pp.curLvlXP });
-  reach.sort((a, b) => a.left - b.left);
-  lines.push(reach[0].n + ' more completion' + (reach[0].n === 1 ? '' : 's') + ' to ' + reach[0].label + '.');
-
-  const st = calcStreak();
-  if (st >= 3) lines.push(st + '-day streak — ' + (isDailyDoneToday(dailies[0] || {}) || doneToday ? 'held today.' : 'not yet held today.'));
-
-  document.getElementById('read').textContent =
-    '── the read ─────────────────────────────────\n' + lines.map(l => '  ' + l).join('\n');
-}
-
-/* ── the map ─────────────────────────────────────────────────
-   three regions, one per pillar. exploration is breadth, not xp:
-   how many distinct things you've actually done there and how many
-   habits have taken root — so grinding one task forever does not
-   fill the bar, and a neglected region reads as neglected. */
-const REGIONS = {
-  health:        { name: 'the near country', glyph: '💪' },
-  relationships: { name: 'the long shore',   glyph: '🤝' },
-  wealth:        { name: 'the high road',    glyph: '💰' }
-};
-
-function exploration(cat) {
-  const all = [...tasks, ...archivedTasks].filter(t => getTaskCat(t) === cat && t.quest !== 'reward');
-  const distinct = new Set(all.filter(t => t.done || (t.completedDates || []).length)
-    .map(t => (t.text || '').toLowerCase().trim()));
-  const habits = tasks.filter(t => t.quest === 'daily' && getTaskCat(t) === cat && habitLevel(t) >= 2).length;
-  const bosses = all.filter(t => t.done && (t.hp || 1) > 1).length;
-  return Math.min(100, distinct.size * 4 + habits * 9 + bosses * 8);
-}
-
-function renderMap() {
-  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
-  let o = '── the map ──────────────────────────────────\n';
-  CAT_KEYS.forEach(c => {
-    const r = REGIONS[c], xp = catXP(c), share = Math.round(xp / total * 100);
-    const ex = exploration(c);
-    const open = tasks.filter(t => getTaskCat(t) === c && !t.done && t.quest !== 'daily' && t.quest !== 'reward');
-    const bosses = open.filter(isBoss).length;
-    o += r.glyph + ' ' + c.toUpperCase() + ' — ' + r.name + '  lvl ' + getLevel(xp) + '\n';
-    o += '   [' + progressBar(ex, 100, 10) + '] ' + ex + '% explored · ' +
-         open.length + ' open' + (bosses ? ' · ' + bosses + ' boss' + (bosses > 1 ? 'es' : '') : '') + '\n';
-    o += '   ' + (share < 15 ? '⚠ neglected — ' + share + '% of your effort'
-                             : share > 60 ? 'dominant — ' + share + '% of your effort'
-                             : 'steady — ' + share + '% of your effort') + '\n';
-  });
-  document.getElementById('map').textContent = o;
-}
-
-/* ── what the world wants from you next ──────────────────────
-   an open world is only useful if it tells you where to go. this
-   reads the same data the stats block does and answers one
-   question: what is the highest-value thing to do right now. */
-function nextMove() {
-  const b = bonusBreakdown();
-  const open = tasks.filter(t => !t.done && t.quest !== 'reward' && t.quest !== 'daily');
-  const dailies = tasks.filter(t => t.quest === 'daily');
-  const undone = dailies.filter(t => !isDailyDoneToday(t));
-
-  const od = open.filter(isOverdue).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  if (od.length) return ['⚠', 'overdue — ' + od[0].text + ' (due ' + od[0].dueDate + ')'];
-
-  const due = open.filter(isDueToday);
-  if (due.length) return ['📢', 'due today — ' + due[0].text];
-
-  const nearlyDead = open.filter(t => isBoss(t) && bossLeft(t) === 1);
-  if (nearlyDead.length) return ['⚔', 'one session left — ' + nearlyDead[0].text];
-
-  if (b.todayCount === 2) {
-    const missing = CAT_KEYS.find(c => !b.todayCats.has(c));
-    const pick = undone.find(t => getTaskCat(t) === missing) || open.find(t => getTaskCat(t) === missing);
-    return ['⭐', 'one ' + missing + ' task closes tri-pillar (+' + TRI_XP + ') — ' +
-      (pick ? pick.text : 'anything in ' + missing)];
-  }
-
-  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
-  const weak = CAT_KEYS.filter(c => catXP(c) / total * 100 < 15)
-    .sort((a, b) => catXP(a) - catXP(b))[0];
-  if (weak) {
-    const pick = undone.find(t => getTaskCat(t) === weak) || open.find(t => getTaskCat(t) === weak);
-    if (pick) return [REGIONS[weak].glyph, weak + ' is failing at ' +
-      Math.round(catXP(weak) / total * 100) + '% — ' + pick.text];
-  }
-
-  const risk = dailies.filter(t => habitStreak(t) >= 3 && !isDailyDoneToday(t))
-    .sort((a, b) => habitStreak(b) - habitStreak(a))[0];
-  if (risk) return ['🔥', habitStreak(risk) + '-day streak at risk — ' + risk.text];
-
-  if (undone.length) return ['·', undone.length + ' dailies left — ' + undone[0].text];
-  const boss = open.filter(isBoss)[0];
-  if (boss) return ['⚔', 'chip at ' + boss.text + ' ' + hpBar(boss)];
-  if (open.length) return ['·', open[0].text];
-  return ['✓', 'everything on the board is clear'];
-}
-
-function renderNextMove() {
-  const [glyph, text] = nextMove();
-  document.getElementById('next-move').textContent = '▶ next: ' + glyph + ' ' + text;
-}
-
-/* ── stats block ────────────────────────────────────────────── */
-function renderRPGStats() {
-  const total = totalXP(), b = bonusBreakdown();
-  const h = catXP('health'), r = catXP('relationships'), w = catXP('wealth');
-  const sum = (h + r + w) || 1;
-  const hP = Math.round(h / sum * 100), rP = Math.round(r / sum * 100), wP = Math.max(0, 100 - hP - rP);
-
-  const p = levelProgress(total), hp = levelProgress(h), rp = levelProgress(r), wp = levelProgress(w);
-
-  let o = '⚔️ player lvl ' + p.lvl + '  (' + p.curLvlXP + ' / ' + p.reqLvlXP + ' xp · ' + total + ' lifetime xp)\n';
-  o += '  [' + progressBar(p.curLvlXP, p.reqLvlXP, 20) + ']\n\n';
-  o += '💪 health        lvl ' + hp.lvl + '  [' + progressBar(hp.curLvlXP, hp.reqLvlXP, 12) + ']  ' + hp.curLvlXP + ' / ' + hp.reqLvlXP + ' xp\n';
-  o += '🤝 relationships lvl ' + rp.lvl + '  [' + progressBar(rp.curLvlXP, rp.reqLvlXP, 12) + ']  ' + rp.curLvlXP + ' / ' + rp.reqLvlXP + ' xp\n';
-  o += '💰 wealth        lvl ' + wp.lvl + '  [' + progressBar(wp.curLvlXP, wp.reqLvlXP, 12) + ']  ' + wp.curLvlXP + ' / ' + wp.reqLvlXP + ' xp\n\n';
-
-  o += 'balance:\n';
-  o += '  💪 health ' + hP + '%' + (hP < 15 ? ' (low)' : '') + ' [' + progressBar(hP, 100, 8) + ']\n';
-  o += '  🤝 rel    ' + rP + '%' + (rP < 15 ? ' (low)' : '') + ' [' + progressBar(rP, 100, 8) + ']\n';
-  o += '  💰 wealth ' + wP + '%' + (wP < 15 ? ' (low)' : '') + ' [' + progressBar(wP, 100, 8) + ']\n';
-
-  const tc = b.todayCats;
-  const box = c => tc.has(c) ? '■' : '□';
-  o += 'tri-pillar [' + box('health') + ' ' + box('relationships') + ' ' + box('wealth') + '] ';
-  if (b.todayCount >= 3)      o += '3/3 active today (+' + TRI_XP + ' xp bonus)\n';
-  else if (b.todayCount === 2) o += '2/3 — pair bonus live (+' + PAIR_XP + '), +' + TRI_XP + ' at 3/3\n';
-  else                         o += b.todayCount + '/3 complete (+' + PAIR_XP + ' at 2/3, +' + TRI_XP + ' at 3/3)\n';
-
-  const streak = calcStreak();
-  if (streak > 0) o += '🔥 ' + streak + ' day streak\n';
-  const s = calcStats();
-  o += 'this week: ' + s.added + ' added, ' + s.completed + ' completed\n';
-
-  const dailies = tasks.filter(t => t.quest === 'daily');
-  const doneD = dailies.filter(isDailyDoneToday).length;
-  if (dailies.length) o += 'dailies today: ' + doneD + '/' + dailies.length + ' [' + progressBar(doneD, dailies.length, 12) + ']\n';
-
-  o += 'xp to spend: ' + availableXP() + '  (' + spentXP() + ' spent on rewards)';
-
-  document.getElementById('rpg-stats').textContent = o;
-}
-
-/* ── rewards — same reward-task shape v1 already writes, so the
-   anime pass keeps working and the CLI still sees them ───────── */
-function shopItems() {
-  try {
-    const s = JSON.parse(localStorage.getItem('playable_shop'));
-    if (Array.isArray(s) && s.length) return s;
-  } catch (e) {}
-  return [{ id: 'anime_pass', name: '🍿 1 hour anime pass', cost: 0, daily: true }];
-}
-function saveShop(items) { localStorage.setItem('playable_shop', JSON.stringify(items)); }
-
-function animeStatus() {
-  const dailies = tasks.filter(t => t.quest === 'daily');
-  const doneToday = dailies.filter(isDailyDoneToday);
-  return {
-    total: dailies.length,
-    done: doneToday.length,
-    allDone: dailies.length > 0 && doneToday.length === dailies.length,
-    claimed: [...tasks, ...archivedTasks].some(t =>
-      t.quest === 'reward' && t.rewardType === 'anime_pass' && t.rewardDate === today() && t.claimed)
-  };
-}
-
-async function claimAnimePass() {
-  const st = animeStatus();
-  if (!st.allDone || st.claimed) return;
-  tasks.push({
-    text: '🍿 1 hour anime pass (' + today() + ')',
-    quest: 'reward', rewardType: 'anime_pass', rewardDate: today(),
-    claimed: true, claimedAt: new Date().toISOString(),
-    done: true, addedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
-    priority: 0, dueDate: null, category: 'health', cost: 0
-  });
-  banner('🍿 1 HOUR ANIME PASS CLAIMED — enjoy your show');
-  render(); await saveTasks();
-}
-
-async function buyReward(id) {
-  const item = shopItems().find(i => i.id === id);
-  if (!item || availableXP() < item.cost) return;
-  tasks.push({
-    text: item.name + ' (' + today() + ')',
-    quest: 'reward', rewardType: item.id, rewardDate: today(),
-    claimed: true, claimedAt: new Date().toISOString(), cost: item.cost,
-    done: true, addedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
-    priority: 0, dueDate: null, category: 'health'
-  });
-  banner('redeemed — ' + item.name);
-  render(); await saveTasks();
-}
-
-function addReward(e) {
-  e.preventDefault();
-  const n = document.getElementById('r-name').value.trim();
-  const c = parseInt(document.getElementById('r-cost').value, 10);
-  if (!n || !(c > 0)) return;
-  saveShop([...shopItems(), { id: 'r' + Date.now().toString(36), name: n, cost: c }]);
-  document.getElementById('r-name').value = '';
-  render();
-}
-function removeReward(id) { saveShop(shopItems().filter(i => i.id !== id)); render(); }
-
-function renderShop() {
-  const st = animeStatus(), avail = availableXP();
-  const el = document.getElementById('shop');
-  el.innerHTML = shopItems().map(i => {
-    if (i.daily) {
-      if (i.claimed) return '';
-      const label = st.claimed ? 'claimed today'
-        : st.allDone ? '<button onclick="claimAnimePass()">claim — all dailies done</button>'
-        : '<span class="hab">' + st.done + '/' + st.total + ' dailies (' + (st.total - st.done) + ' more)</span>';
-      return '<div>' + i.name + ' — free at 100% dailies — ' + label + '</div>';
-    }
-    const can = avail >= i.cost;
-    return '<div>' + i.name + ' — ' + i.cost + ' xp — ' +
-      '<button onclick="buyReward(\'' + i.id + '\')"' + (can ? '' : ' disabled') + '>redeem</button> ' +
-      '<button onclick="removeReward(\'' + i.id + '\')">×</button></div>';
-  }).join('');
-}
-
-function renderVault() {
-  const all = [...tasks, ...archivedTasks].filter(t => t.quest === 'reward' && t.claimed);
-  const el = document.getElementById('rewards-vault-list');
-  if (!all.length) { el.innerHTML = '<li>(nothing claimed yet)</li>'; return; }
-  all.sort((a, b) => new Date(b.claimedAt || b.rewardDate) - new Date(a.claimedAt || a.rewardDate));
-  el.innerHTML = all.map(r =>
-    '<li>' + esc(r.text) + (r.cost ? ' — ' + r.cost + ' xp' : '') + '</li>').join('');
-}
-
-function renderHabits() {
-  const ds = tasks.filter(t => t.quest === 'daily');
-  const el = document.getElementById('habits');
-  if (!ds.length) { el.innerHTML = '<p class="hab">no dailies yet</p>'; return; }
-  el.innerHTML = ds
-    .map(t => ({ t, n: (t.completedDates || []).length, s: habitStreak(t) }))
-    .sort((a, b) => b.n - a.n)
-    .map(({ t, n, s }) =>
-      '<div>' + (CATS[getTaskCat(t)] || '') + ' ' + esc(t.text) +
-      ' — lv ' + habitLevel(t) + ' · ' + n + '×' +
-      (s > 1 ? ' · 🔥' + s : '') + '</div>').join('');
-}
-
-function buildXPLogs() {
-  const logs = [];
-  [...tasks, ...archivedTasks].forEach(t => {
-    const cat = getTaskCat(t);
+    const cat = catOf(t), base = baseXP(t), k = keyOf(t);
     if (t.quest === 'daily') {
-      (t.completedDates || []).forEach(ds =>
-        logs.push({ xp: 25, cat, text: t.text, ts: ds, sort: new Date(ds).getTime() || 0 }));
+      (t.completedDates || []).forEach(d => {
+        const eff = (S.effort || {})[k + '|' + d] || 'normal';
+        const m = (EFFORT[eff] || EFFORT.normal).m;
+        ev.push({ day: d, at: d, cat, text: t.text, base, mult: m,
+          xp: Math.round(base * m), rule: 'daily' + (eff !== 'normal' ? ' · ' + eff : ''), kind: 'task' });
+      });
     } else if (t.done) {
-      const ts = t.completedAt || t.addedAt || '';
-      logs.push({ xp: xpFromTask(t), cat, text: t.text, ts, sort: ts ? new Date(ts).getTime() || 0 : 0 });
+      const d = t.completedAt ? dayStr(t.completedAt) : (t.addedAt ? dayStr(t.addedAt) : today());
+      ev.push({ day: d, at: t.completedAt || t.addedAt || d, cat, text: t.text, base, mult: 1,
+        xp: base, rule: t.quest + ' quest', kind: 'task' });
     }
   });
-  const by = catsByDate();
-  Object.keys(by).forEach(ds => {
-    const n = CAT_KEYS.filter(c => by[ds].has(c)).length;
-    if (n >= 3) logs.push({ xp: TRI_XP, cat: 'bonus', text: 'tri-pillar', ts: ds, sort: new Date(ds).getTime() || 0 });
-    else if (n === 2) logs.push({ xp: PAIR_XP, cat: 'bonus', text: 'pair', ts: ds, sort: new Date(ds).getTime() || 0 });
+
+  /* rest, on days you declared recovery. the vision is explicit
+     that rest is play, not the absence of it. */
+  Object.keys(S.days || {}).forEach(d => {
+    if (S.days[d] && S.days[d].rest) {
+      ev.push({ day: d, at: d, cat: 'health', text: 'rested', base: REST_XP, mult: 1,
+        xp: REST_XP, rule: 'rest · recovery day', kind: 'rest' });
+    }
   });
-  return logs.sort((a, b) => b.sort - a.sort);
+
+  /* balance bonuses, paid per day */
+  const byDay = {};
+  ev.forEach(e => (byDay[e.day] = byDay[e.day] || new Set()).add(e.cat));
+  Object.keys(byDay).forEach(d => {
+    const n = CK.filter(c => byDay[d].has(c)).length;
+    if (n >= 3) ev.push({ day: d, at: d, cat: 'bonus', text: 'all three pillars', base: TRI_XP,
+      mult: 1, xp: TRI_XP, rule: 'tri-pillar', kind: 'bonus' });
+    else if (n === 2) ev.push({ day: d, at: d, cat: 'bonus', text: 'two pillars', base: PAIR_XP,
+      mult: 1, xp: PAIR_XP, rule: 'pair', kind: 'bonus' });
+  });
+
+  ev.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  return ev;
 }
 
-function fmt(ts) {
-  if (!ts) return '';
-  const d = new Date(ts); if (isNaN(d)) return ts;
-  const p = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+const catXP = c => EV.filter(e => e.cat === c).reduce((s, e) => s + e.xp, 0);
+const totalXP = () => EV.reduce((s, e) => s + e.xp, 0);
+
+/* ── the day ─────────────────────────────────────────────────── */
+const dailies = () => tasks.filter(t => t.quest === 'daily');
+const doneOn = (t, d) => (t.completedDates || []).includes(d);
+const clearedCount = d => dailies().filter(t => doneOn(t, d)).length;
+
+function modeOf(d) { return ((S.days || {})[d] || {}).mode || null; }
+function targetFor(d) {
+  const n = dailies().length;
+  const m = modeOf(d);
+  if (!m) return Math.max(1, Math.ceil(n * 0.6));       // undeclared days assume a real day
+  if (m === 'recovery') return 0;
+  return Math.max(1, Math.ceil(n * MODES[m].frac));
+}
+function dayCleared(d) {
+  const m = modeOf(d);
+  if (m === 'recovery') return !!((S.days || {})[d] || {}).rest;
+  const t = targetFor(d);
+  if (clearedCount(d) >= t) return true;
+  /* history predates modes: any activity at all cleared the day */
+  if (!m && d !== today()) return EV.some(e => e.day === d && e.kind === 'task');
+  return false;
 }
 
-function renderXPLogs() {
-  const logs = buildXPLogs(), el = document.getElementById('xp-logs-list');
-  el.innerHTML = logs.length
-    ? logs.slice(0, 200).map(l => '<li>+' + l.xp + ' xp (' + l.cat + ' ' +
-        (l.cat === 'bonus' ? '🌟' : CATS[l.cat] || '') + ') — ' + esc(l.text) +
-        (l.ts ? ' — ' + fmt(l.ts) : '') + '</li>').join('')
-    : '<li>(no xp logs yet)</li>';
+/* streak counts days you hit the bar you set, not days you were
+   perfect. that is the whole point of declaring the day. */
+function streak() {
+  let d = dayCleared(today()) ? today() : addDays(today(), -1);
+  let n = 0;
+  while (n < 4000 && dayCleared(d)) { n++; d = addDays(d, -1); }
+  return n;
 }
 
-/* ── auth ───────────────────────────────────────────────────── */
-function init() {
-  if (!token || !repo) {
-    document.getElementById('auth').style.display = '';
-    document.getElementById('app').style.display = 'none';
+/* ── identity ────────────────────────────────────────────────── */
+function identity() {
+  const tot = CK.reduce((s, c) => s + catXP(c), 0) || 1;
+  const share = {}; CK.forEach(c => share[c] = Math.round(catXP(c) / tot * 100));
+  const top = CK.slice().sort((a, b) => share[b] - share[a])[0];
+  const bot = CK.slice().sort((a, b) => share[a] - share[b])[0];
+  const spread = share[top] - share[bot];
+  const title = spread < 20 ? 'The Whole'
+    : top === 'wealth' ? 'The Builder'
+    : top === 'health' ? 'The Tempered'
+    : 'The Kin';
+  const desc = spread < 20 ? 'evenly spread'
+    : top + '-dominant' + (share[bot] < 15 ? ', ' + bot + '-starved' : '');
+  return { title, desc, share, top, bot };
+}
+
+/* ── the read ─────────────────────────────────────────────────── */
+function neglectDays(cat) {
+  const days = [...new Set(EV.map(e => e.day))].sort();
+  if (!days.length) return 0;
+  const run = {}; CK.forEach(c => run[c] = 0);
+  const hist = [];
+  days.forEach(d => {
+    EV.filter(e => e.day === d && run[e.cat] !== undefined).forEach(e => run[e.cat] += e.xp);
+    const tot = CK.reduce((s, c) => s + run[c], 0) || 1;
+    hist.push({ d, pct: run[cat] / tot * 100 });
+  });
+  let n = 0;
+  for (let i = hist.length - 1; i >= 0; i--) { if (hist[i].pct < 15) n++; else break; }
+  return n ? Math.max(n, daysBetween(hist[hist.length - n].d, today())) : 0;
+}
+
+function read() {
+  const L = [], td = today(), n = dailies().length;
+  const done = clearedCount(td), tgt = targetFor(td), m = modeOf(td);
+
+  const past = [...new Set(EV.filter(e => e.kind === 'task').map(e => e.day))].filter(d => d !== td);
+  const counts = past.map(d => clearedCount(d)).filter(x => x > 0).sort((a, b) => a - b);
+  const best = counts.length ? counts[counts.length - 1] : 0;
+  const usual = counts.length ? counts[Math.floor(counts.length / 2)] : 0;
+
+  if (!n) L.push('no dailies yet. add a few and this fills in.');
+  else if (m === 'recovery') {
+    L.push(((S.days[td] || {}).rest)
+      ? 'recovery day, and you took it. that is a cleared day.'
+      : 'recovery day. resting is the quest — mark it when you have.');
+  } else if (done >= tgt && tgt > 0) {
+    L.push('day cleared — ' + done + ' of ' + n + ', you needed ' + tgt + '.' +
+      (done > best ? ' best day yet.' : ''));
+  } else if (done === 0) {
+    L.push('nothing yet today. you need ' + tgt + ' to clear it' +
+      (usual ? '; your usual day is ' + usual : '') + '.');
   } else {
-    document.getElementById('auth').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    loadTasks();
+    L.push(done + ' of ' + n + '. ' + (tgt - done) + ' more clears the day.');
   }
-}
-function saveToken() {
-  repo = document.getElementById('repo-input').value.trim();
-  token = document.getElementById('token-input').value.trim();
-  if (!repo || !token) return;
-  localStorage.setItem('gh_repo', repo);
-  localStorage.setItem('gh_token', token);
-  init();
-}
-function clearToken() {
-  token = ''; repo = '';
-  localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo');
-  init();
+
+  const id = identity();
+  L.push(id.share[id.top] >= 55
+    ? id.top + ' is carrying this run — ' + id.share[id.top] + '% of everything you have done.'
+    : 'effort is spread: ' + CK.map(c => c + ' ' + id.share[c] + '%').join(', ') + '.');
+
+  CK.forEach(c => { const k = neglectDays(c);
+    if (k >= 3) L.push(c + ' has been under 15% for ' + k + ' days.'); });
+
+  const idle = (() => {
+    const last = [...new Set(EV.filter(e => e.kind === 'task').map(e => e.day))].sort().pop();
+    return last ? daysBetween(last, td) : 0;
+  })();
+  if (idle >= 2) L.push('you have not played in ' + idle + ' days. the save is where you left it.');
+
+  const wk = d => EV.filter(e => e.kind === 'task' && weekOf(e.day) === d).length;
+  const tw = wk(weekOf(td)), lw = wk(weekOf(addDays(td, -7)));
+  if (tw || lw) L.push('this week ' + tw + ', last week ' + lw + ' — ' +
+    (tw > lw ? 'climbing.' : tw < lw ? 'slowing.' : 'level.'));
+
+  const reach = CK.map(c => { const p = levelProgress(catXP(c));
+    return { l: c + ' lvl ' + (p.lvl + 1), left: p.req - p.cur }; });
+  const pp = levelProgress(totalXP());
+  reach.push({ l: 'player lvl ' + (pp.lvl + 1), left: pp.req - pp.cur });
+  reach.sort((a, b) => a.left - b.left);
+  L.push(Math.ceil(reach[0].left / 25) + ' more completions to ' + reach[0].l + '.');
+
+  const st = streak();
+  if (st >= 2) L.push(st + ' days running where you hit the bar you set.');
+  return L;
 }
 
-/* ── data ───────────────────────────────────────────────────── */
-function backfill(list) {
-  list.forEach(t => {
+/* ── chapters: the week, sealed and kept ─────────────────────── */
+function chapterFor(wk) {
+  const evs = EV.filter(e => weekOf(e.day) === wk);
+  if (!evs.length) return null;
+  const days = [...new Set(evs.filter(e => e.kind === 'task').map(e => e.day))];
+  const by = {}; CK.forEach(c => by[c] = evs.filter(e => e.cat === c).reduce((s, e) => s + e.xp, 0));
+  const cleared = days.filter(dayCleared).length;
+  const hard = evs.filter(e => (e.rule || '').includes('hard')).length;
+  const rest = evs.filter(e => e.kind === 'rest').length;
+  const top = CK.slice().sort((a, b) => by[b] - by[a])[0];
+  const L = [];
+  L.push('week of ' + pretty(wk) + ' — ' + evs.filter(e => e.kind === 'task').length +
+    ' actions across ' + days.length + ' days, ' + cleared + ' cleared.');
+  L.push('  ' + CK.map(c => CATS[c] + ' ' + by[c]).join('   ') +
+    '   → ' + top + ' led the week.');
+  if (hard) L.push('  ' + hard + ' of them you marked hard.');
+  if (rest) L.push('  ' + rest + ' recovery day' + (rest > 1 ? 's' : '') + ' taken.');
+  const tri = evs.filter(e => e.rule === 'tri-pillar').length;
+  if (tri) L.push('  ' + tri + ' day' + (tri > 1 ? 's' : '') + ' touching all three pillars.');
+  return L.join('\n');
+}
+
+/* ── github ──────────────────────────────────────────────────── */
+const H = () => ({ Authorization: 'token ' + token, 'Content-Type': 'application/json' });
+const dec = c => JSON.parse(decodeURIComponent(escape(atob(c.replace(/\n/g, '')))));
+const enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o, null, 2) + '\n')));
+
+async function getFile(f) {
+  const r = await fetch('https://api.github.com/repos/' + repo + '/contents/' + f, { headers: H() });
+  if (r.status === 404) return { data: null, sha: null };
+  if (!r.ok) throw new Error(f + ': ' + r.status);
+  const j = await r.json();
+  return { data: dec(j.content), sha: j.sha };
+}
+async function putFile(f, obj, s, msg) {
+  const body = { message: msg, content: enc(obj) };
+  if (s) body.sha = s;
+  let r = await fetch('https://api.github.com/repos/' + repo + '/contents/' + f,
+    { method: 'PUT', headers: H(), body: JSON.stringify(body) });
+  if (r.status === 409 || r.status === 422) {
+    const cur = await getFile(f);
+    const b2 = { message: msg, content: enc(obj) };
+    if (cur.sha) b2.sha = cur.sha;
+    r = await fetch('https://api.github.com/repos/' + repo + '/contents/' + f,
+      { method: 'PUT', headers: H(), body: JSON.stringify(b2) });
+  }
+  if (!r.ok) throw new Error(f + ' save: ' + r.status);
+  return (await r.json()).content.sha;
+}
+
+const freshState = () => ({ v: 1, days: {}, effort: {}, arcs: [], redeemed: [],
+  shop: [{ id: 'r1', n: 'an hour of anything, guilt-free', c: 300 },
+         { id: 'r2', n: 'takeout, no argument', c: 800 },
+         { id: 'r3', n: 'a whole day off', c: 3000 }] });
+
+function backfill(l) {
+  l.forEach(t => {
     if (t.priority === undefined) t.priority = 0;
     if (t.dueDate === undefined) t.dueDate = null;
     if (t.category === undefined) t.category = 'health';
     if (t.quest === undefined) t.quest = 'main';
   });
-  return list;
+  return l;
 }
 
-async function loadTasks() {
-  status('loading...');
+async function load() {
+  status('opening the save...');
   try {
-    const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE,
-      { headers: { Authorization: 'token ' + token } });
-    if (!res.ok) throw new Error('fetch failed: ' + res.status);
-    const data = await res.json();
-    sha = data.sha;
-    tasks = backfill(JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))))));
-    await loadArchive();
-    render();
-    status('');
-  } catch (e) {
-    status('error: ' + e.message);
-  }
+    const a = await getFile('tasks.json');
+    tasks = backfill(a.data || []); sha = a.sha;
+    try { const b = await getFile('archive.json'); archived = backfill(b.data || []); } catch (e) { archived = []; }
+    try { const c = await getFile('state.json'); S = c.data || freshState(); stateSha = c.sha; }
+    catch (e) { S = freshState(); stateSha = null; }
+    S.days = S.days || {}; S.effort = S.effort || {}; S.arcs = S.arcs || [];
+    S.shop = S.shop || []; S.redeemed = S.redeemed || [];
+    render(); status('');
+  } catch (e) { status('error: ' + e.message); }
 }
 
-async function loadArchive() {
-  try {
-    const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + ARCHIVE_FILE,
-      { headers: { Authorization: 'token ' + token } });
-    if (!res.ok) { archivedTasks = []; return; }
-    const data = await res.json();
-    archivedTasks = backfill(JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))))));
-  } catch (e) { archivedTasks = []; }
-}
-
-async function freshSha() {
-  const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE,
-    { headers: { Authorization: 'token ' + token } });
-  if (!res.ok) throw new Error('sha failed: ' + res.status);
-  return (await res.json()).sha;
-}
-
-async function saveTasks() {
+let saving = false;
+async function persist(alsoTasks) {
+  if (saving) return; saving = true;
   status('saving...');
   try {
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(tasks, null, 2) + '\n')));
-    const put = s => fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE, {
-      method: 'PUT',
-      headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'update tasks', content, sha: s })
-    });
-    let res = await put(sha);
-    if (res.status === 409 || res.status === 422) { sha = await freshSha(); res = await put(sha); }
-    if (!res.ok) throw new Error('save failed: ' + res.status);
-    sha = (await res.json()).content.sha;
-    status('saved ✓');
-    setTimeout(() => status(''), 1000);
-  } catch (e) {
-    status('error: ' + e.message + ' — your tick is still on screen, try again');
+    if (alsoTasks) sha = await putFile('tasks.json', tasks, sha, 'update tasks');
+    stateSha = await putFile('state.json', S, stateSha, 'update state');
+    status('saved'); setTimeout(() => status(''), 900);
+  } catch (e) { status('error: ' + e.message + ' — nothing lost, try again'); }
+  saving = false;
+}
+
+/* ── actions ─────────────────────────────────────────────────── */
+function toast(m) {
+  const t = $('toast'); t.textContent = m; t.classList.remove('hide');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hide'), 2200);
+}
+
+async function tick(i, effort) {
+  const t = tasks[i], td = today();
+  const beforeCat = catXP(catOf(t)), beforeLvl = getLevel(beforeCat);
+  const beforePlayer = getLevel(totalXP());
+  const wasCleared = dayCleared(td);
+
+  if (t.quest === 'daily') {
+    t.completedDates = t.completedDates || [];
+    if (!t.completedDates.includes(td)) t.completedDates.push(td);
+    if (effort && effort !== 'normal') S.effort[keyOf(t) + '|' + td] = effort;
+  } else {
+    t.done = true; t.completedAt = new Date().toISOString();
   }
+  EV = buildEvents();
+
+  const gained = catXP(catOf(t)) - beforeCat;
+  toast('+' + gained + ' ' + catOf(t) + (effort && effort !== 'normal' ? ' (' + effort + ')' : ''));
+  if (getLevel(catXP(catOf(t))) > beforeLvl) toast(catOf(t) + ' → lvl ' + getLevel(catXP(catOf(t))));
+  if (getLevel(totalXP()) > beforePlayer) toast('player → lvl ' + getLevel(totalXP()));
+  if (!wasCleared && dayCleared(td)) toast('day cleared.');
+
+  render(); await persist(true);
 }
 
-/* ── render ─────────────────────────────────────────────────── */
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+async function untick(i) {
+  const t = tasks[i], td = today();
+  if (t.quest === 'daily') {
+    t.completedDates = (t.completedDates || []).filter(d => d !== td);
+    delete S.effort[keyOf(t) + '|' + td];
+  } else { t.done = false; t.completedAt = null; }
+  EV = buildEvents(); render(); await persist(true);
 }
 
-function setFilter(c) {
-  currentFilter = c;
-  document.querySelectorAll('#filters button').forEach(b =>
-    b.style.fontWeight = b.getAttribute('data-filter') === c ? 'bold' : 'normal');
-  render();
+async function setMode(m) {
+  const td = today();
+  S.days[td] = S.days[td] || {};
+  S.days[td].mode = S.days[td].mode === m ? null : m;
+  if (S.days[td].mode !== 'recovery') delete S.days[td].rest;
+  EV = buildEvents(); render(); await persist(false);
 }
 
-function render() {
-  renderRead(); renderNextMove(); renderMap(); renderRPGStats(); renderShop(); renderVault(); renderHabits(); renderXPLogs();
-
-  const filtered = tasks
-    .map((t, i) => ({ t, i }))
-    .filter(({ t }) => t.quest !== 'reward')
-    .filter(({ t }) => currentFilter === 'all' || getTaskCat(t) === currentFilter);
-
-  const pick = q => filtered.filter(({ t }) => t.quest === q);
-  const sortFn = (a, b) => {
-    if (a.t.done !== b.t.done) return a.t.done ? 1 : -1;
-    const rank = { health: 1, relationships: 2, wealth: 3 };
-    const ca = rank[getTaskCat(a.t)] || 1, cb = rank[getTaskCat(b.t)] || 1;
-    if (ca !== cb) return ca - cb;
-    return (b.t.priority || 0) - (a.t.priority || 0);
-  };
-
-  const dailies = shuffleDailies(pick('daily').map(x => x.t))
-    .map(t => ({ t, i: tasks.indexOf(t) }));
-  const mains = pick('main').sort(sortFn);
-  const stories = pick('story').sort(sortFn);
-  const sides = pick('side').sort(sortFn);
-
-  let html = '';
-
-  const section = (title, items, isDaily) => {
-    if (!items.length && title !== 'story quests') return;
-    html += '<p>— ' + title + ' —</p><ul>';
-    if (!items.length) { html += '<li>(none active)</li></ul>'; return; }
-    items.forEach(({ t, i }) => {
-      const done = isDaily ? isDailyDoneToday(t) : t.done;
-      const cat = CATS[getTaskCat(t)] || '';
-      let extra = '';
-      if (isDaily) {
-        const s = habitStreak(t), n = (t.completedDates || []).length;
-        extra = ' <span class="hab">lv' + habitLevel(t) + (s > 1 ? ' 🔥' + s : '') + ' ·' + n + '×</span>';
-      }
-      if (isOverdue(t)) extra += ' <span class="warn">⚠️ overdue ' + t.dueDate + '</span>';
-      else if (isDueToday(t)) extra += ' <span class="warn">📢 due today</span>';
-
-      const boss = !isDaily && isBoss(t) && !t.done;
-      const st = stepsOf(t);
-
-      html += '<li><input type="checkbox"' + (done ? ' checked' : '') +
-        ' onchange="' + (isDaily ? 'toggleDaily' : 'toggle') + '(' + i + ')"> ' +
-        cat + ' <span ondblclick="editTask(' + i + ')" title="double click to edit">' +
-        (done ? '<s>' + esc(t.text) + '</s>' : esc(t.text)) + '</span>' + extra;
-
-      if (boss) {
-        html += ' <span class="hab">' + hpBar(t) + '</span> ' +
-          '<button onclick="strike(' + i + ')">strike</button>';
-        if (bossHits(t)) html += ' <button onclick="unstrike(' + i + ')">−</button>';
-      }
-      if (st.length) {
-        html += ' <span class="hab">' + stepsDone(t) + '/' + st.length + ' steps</span><ul>';
-        st.forEach((sp, si) => {
-          html += '<li><input type="checkbox"' + (sp.done ? ' checked' : '') +
-            ' onchange="toggleStep(' + i + ',' + si + ')"> ' +
-            (sp.done ? '<s>' + esc(sp.text) + '</s>' : esc(sp.text)) + '</li>';
-        });
-        html += '</ul>';
-      }
-      html += '</li>';
-    });
-    html += '</ul>';
-  };
-
-  section('daily quests', dailies, true);
-  section('main quests', mains, false);
-  section('story quests', stories, false);
-  section('side quests', sides, false);
-
-  document.getElementById('list').innerHTML = html;
+async function markRest() {
+  const td = today();
+  S.days[td] = S.days[td] || {};
+  S.days[td].rest = !S.days[td].rest;
+  EV = buildEvents();
+  if (S.days[td].rest) toast('rest counted. +' + REST_XP + ' health');
+  render(); await persist(false);
 }
 
-function toggleMore() {
-  moreVisible = !moreVisible;
-  document.getElementById('more').style.display = moreVisible ? '' : 'none';
-  document.getElementById('more-btn').textContent = moreVisible ? 'hide options' : 'show options';
-}
-
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.display = '';
-  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 1800);
-}
-function banner(msg) {
-  const el = document.getElementById('banner');
-  el.textContent = msg; el.style.display = '';
-  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 4000);
-}
-
-/* ── actions ────────────────────────────────────────────────── */
 async function addTask(e) {
   e.preventDefault();
-  const inp = document.getElementById('inp');
-  const v = inp.value.trim(); if (!v) return;
-  const quest = document.getElementById('quest-input').value;
-  const t = {
-    text: v, quest, done: false,
-    addedAt: new Date().toISOString(), completedAt: null,
-    priority: 0, dueDate: null,
-    category: document.getElementById('cat-input').value
+  const v = $('inp').value.trim(); if (!v) return;
+  const q = $('quest-input').value;
+  const t = { text: v, quest: q, done: false, addedAt: new Date().toISOString(),
+    completedAt: null, priority: 0, dueDate: null, category: $('cat-input').value };
+  if (q === 'daily') t.completedDates = [];
+  tasks.push(t); $('inp').value = '';
+  EV = buildEvents(); render(); await persist(true);
+}
+
+async function delTask(i) {
+  if (!confirm('remove "' + tasks[i].text + '"?')) return;
+  tasks.splice(i, 1); EV = buildEvents(); render(); await persist(true);
+}
+
+async function addArc(e) {
+  e.preventDefault();
+  const n = $('a-name').value.trim(); if (!n) return;
+  S.arcs.push({ id: 'a' + Date.now().toString(36), n, started: today(), steps: [], done: false });
+  $('a-name').value = ''; render(); await persist(false);
+}
+async function arcStep(id) {
+  const a = S.arcs.find(x => x.id === id); if (!a) return;
+  const s = prompt('add a step to "' + a.n + '":'); if (!s || !s.trim()) return;
+  a.steps.push({ t: s.trim(), d: false }); render(); await persist(false);
+}
+async function toggleStep(id, i) {
+  const a = S.arcs.find(x => x.id === id); if (!a) return;
+  a.steps[i].d = !a.steps[i].d;
+  a.done = a.steps.length > 0 && a.steps.every(s => s.d);
+  if (a.done) toast('arc complete — ' + a.n);
+  render(); await persist(false);
+}
+async function delArc(id) {
+  if (!confirm('drop this arc?')) return;
+  S.arcs = S.arcs.filter(x => x.id !== id); render(); await persist(false);
+}
+
+const spent = () => S.redeemed.reduce((s, r) => s + r.c, 0);
+const spendable = () => totalXP() - spent();
+
+async function redeem(id) {
+  const it = S.shop.find(x => x.id === id); if (!it || spendable() < it.c) return;
+  S.redeemed.unshift({ n: it.n, c: it.c, at: today() });
+  toast('take it. ' + it.n); render(); await persist(false);
+}
+async function addReward(e) {
+  e.preventDefault();
+  const n = $('r-name').value.trim(), c = parseInt($('r-cost').value, 10);
+  if (!n || !(c > 0)) return;
+  S.shop.push({ id: 'r' + Date.now().toString(36), n, c });
+  $('r-name').value = ''; render(); await persist(false);
+}
+async function delReward(id) {
+  S.shop = S.shop.filter(x => x.id !== id); render(); await persist(false);
+}
+
+function tog(id) { $(id).classList.toggle('hide'); }
+
+/* ── render ──────────────────────────────────────────────────── */
+function render() {
+  EV = buildEvents();
+  const td = today(), id = identity(), p = levelProgress(totalXP());
+
+  $('who').textContent =
+    id.title + ' · player lvl ' + p.lvl + '\n' +
+    id.desc + '\n' +
+    '[' + bar(p.cur, p.req, 24) + '] ' + p.cur + '/' + p.req + ' to lvl ' + (p.lvl + 1) +
+    '  ·  ' + totalXP() + ' lifetime';
+
+  $('read').textContent = read().map(l => l).join('\n');
+
+  /* the day */
+  const n = dailies().length, done = clearedCount(td), tgt = targetFor(td), m = modeOf(td);
+  $('day').textContent = 'today — ' + (m ? MODES[m].label + ' day' : 'undeclared') +
+    (m === 'recovery' ? '' : '   ' + done + '/' + tgt + ' to clear   [' + bar(done, tgt || 1, 16) + ']') +
+    (dayCleared(td) ? '   ✓ cleared' : '') +
+    '\n' + streak() + ' day streak — days you hit the bar you set, not days you were perfect';
+
+  $('modes').innerHTML = Object.keys(MODES).map(k =>
+    '<button class="' + (m === k ? 'on' : '') + '" onclick="setMode(\'' + k + '\')" title="' +
+    MODES[k].blurb + '">' + MODES[k].label + '</button>').join(' ') +
+    ' <span class="q">' + (m ? MODES[m].blurb : 'declare the day and the bar moves to meet you') + '</span>';
+
+  $('rest').innerHTML = m === 'recovery'
+    ? '<p><button onclick="markRest()">' + ((S.days[td] || {}).rest ? '✓ rested' : 'mark rest') +
+      '</button> <span class="q">rest is play. +' + REST_XP + ' health.</span></p>'
+    : '';
+
+  /* quests */
+  let h = '';
+  const group = (title, list, isDaily) => {
+    if (!list.length) return;
+    h += '<div class="q">' + title + '</div><ul>';
+    list.forEach(({ t, i }) => {
+      const d = isDaily ? doneOn(t, td) : t.done;
+      const eff = isDaily ? (S.effort[keyOf(t) + '|' + td] || '') : '';
+      h += '<li class="' + (d ? 'd' : '') + '">';
+      if (d) {
+        h += '<button onclick="untick(' + i + ')">✓</button> ' + CATS[catOf(t)] + ' <s>' +
+          esc(t.text) + '</s>' + (eff && eff !== 'normal' ? ' <span class="q">' + eff + '</span>' : '');
+      } else {
+        h += '<button onclick="tick(' + i + ',\'normal\')">·</button> ' + CATS[catOf(t)] + ' ' + esc(t.text);
+        if (isDaily) h += ' <span class="q">' +
+          '<button onclick="tick(' + i + ',\'survival\')" title="' + EFFORT.survival.blurb + '">min</button>' +
+          '<button onclick="tick(' + i + ',\'hard\')" title="' + EFFORT.hard.blurb + '">hard</button></span>';
+      }
+      h += ' <button class="q" onclick="delTask(' + i + ')">×</button></li>';
+    });
+    h += '</ul>';
   };
-  if (quest === 'daily') t.completedDates = [];
-  const hp = parseInt(document.getElementById('hp-input').value, 10);
-  if (quest !== 'daily' && hp > 1) { t.hp = hp; t.hits = 0; }
-  tasks.push(t);
-  inp.value = '';
-  document.getElementById('hp-input').value = '1';
-  render();
-  await saveTasks();
+  const idx = q => tasks.map((t, i) => ({ t, i })).filter(x => x.t.quest === q);
+  group('daily · ' + done + '/' + n, idx('daily'), true);
+  group('main', idx('main').filter(x => !x.t.done), false);
+  group('story', idx('story').filter(x => !x.t.done), false);
+  group('side', idx('side').filter(x => !x.t.done), false);
+  $('quests').innerHTML = h || '<p class="q">nothing on the board.</p>';
+
+  /* pillars */
+  $('pillars').textContent = CK.map(c => {
+    const q = levelProgress(catXP(c));
+    return CATS[c] + ' ' + c.padEnd(14) + 'lvl ' + String(q.lvl).padStart(2) +
+      '  [' + bar(q.cur, q.req, 14) + ']  ' + q.cur + '/' + q.req +
+      '\n   ' + MEANS[c] + ' — ' + id.share[c] + '% of the run';
+  }).join('\n');
+
+  /* arcs */
+  $('arcs').innerHTML = S.arcs.length ? S.arcs.map(a => {
+    const dn = a.steps.filter(s => s.d).length;
+    return '<div><b>' + esc(a.n) + '</b> <span class="q">' + dn + '/' + a.steps.length +
+      ' · since ' + pretty(a.started) + (a.done ? ' · complete' : '') + '</span> ' +
+      '<button onclick="arcStep(\'' + a.id + '\')">+ step</button> ' +
+      '<button class="q" onclick="delArc(\'' + a.id + '\')">×</button><ul>' +
+      a.steps.map((s, i) => '<li class="' + (s.d ? 'd' : '') + '">' +
+        '<button onclick="toggleStep(\'' + a.id + '\',' + i + ')">' + (s.d ? '✓' : '·') + '</button> ' +
+        (s.d ? '<s>' + esc(s.t) + '</s>' : esc(s.t)) + '</li>').join('') + '</ul></div>';
+  }).join('') : '<p class="q">no arcs. an arc is a chapter you are trying to live, not a task.</p>';
+
+  /* rewards */
+  $('shop').innerHTML = '<div class="q">' + spendable() + ' spendable · ' + spent() + ' spent</div>' +
+    S.shop.map(i => '<div>' + esc(i.n) + ' <span class="q">' + i.c + '</span> ' +
+      '<button onclick="redeem(\'' + i.id + '\')"' + (spendable() < i.c ? ' disabled' : '') + '>take</button> ' +
+      '<button class="q" onclick="delReward(\'' + i.id + '\')">×</button></div>').join('');
+  $('vault').innerHTML = S.redeemed.length
+    ? '<div class="q">taken: ' + S.redeemed.slice(0, 8).map(r => esc(r.n) + ' (' + pretty(r.at) + ')').join(', ') + '</div>'
+    : '';
+
+  /* chapters */
+  const weeks = [...new Set(EV.map(e => weekOf(e.day)))].sort().reverse();
+  $('chapters').innerHTML = '<hr>' + (weeks.length
+    ? weeks.slice(0, 12).map(w => '<pre>' + esc(chapterFor(w) || '') + '</pre>').join('<br>')
+    : '<p class="q">no weeks yet.</p>');
+
+  /* the ledger — every number, and the rule that moved it */
+  $('ledger').innerHTML = '<hr><div class="q">every event, and the rule that moved the number</div><ul>' +
+    EV.slice(0, 200).map(e => '<li class="q">' + e.day + '  +' + String(e.xp).padStart(4) + '  ' +
+      (e.cat === 'bonus' ? '🌟' : CATS[e.cat]) + '  ' + esc(e.text) +
+      '  <i>' + e.rule + (e.mult !== 1 ? ' (' + e.base + ' × ' + e.mult + ')' : '') + '</i></li>').join('') +
+    '</ul>';
 }
 
-function announce(cat, gained, before) {
-  toast('+' + gained + ' xp (' + cat + ')');
-  const after = catXP(cat);
-  if (getLevel(after) > getLevel(before)) banner('🎉 ' + cat + ' → lvl ' + getLevel(after));
-  const b = bonusBreakdown();
-  if (b.todayCount === 2) toast('+' + PAIR_XP + ' pair bonus');
-  if (b.todayCount === 3) banner('⭐ tri-pillar 3/3 — +' + TRI_XP + ' xp');
+/* ── auth ────────────────────────────────────────────────────── */
+function init() {
+  const ok = token && repo;
+  $('auth').classList.toggle('hide', !!ok);
+  $('app').classList.toggle('hide', !ok);
+  if (ok) load();
+}
+function saveToken() {
+  repo = $('repo-input').value.trim(); token = $('token-input').value.trim();
+  if (!repo || !token) return;
+  localStorage.setItem('gh_repo', repo); localStorage.setItem('gh_token', token);
+  init();
+}
+function clearToken() {
+  token = repo = '';
+  localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo');
+  init();
 }
 
-async function toggle(i) {
-  const t = tasks[i], was = t.done;
-  const cat = getTaskCat(t), before = catXP(cat);
-  t.done = !t.done;
-  t.completedAt = t.done ? new Date().toISOString() : null;
-  if (t.done && !was) announce(cat, xpFromTask(t), before);
-  render();
-  await saveTasks();
-}
-
-async function toggleDaily(i) {
-  const t = tasks[i];
-  if (!t.completedDates) t.completedDates = [];
-  const cat = getTaskCat(t), before = catXP(cat);
-  const at = t.completedDates.indexOf(today());
-  if (at >= 0) t.completedDates.splice(at, 1);
-  else {
-    t.completedDates.push(today());
-    announce(cat, 25, before);
-    const st = animeStatus();
-    if (st.allDone && !st.claimed) banner('🎉 all dailies done — 🍿 anime pass unlocked');
-  }
-  render();
-  await saveTasks();
-}
-
-/* land one session on a boss. the last hit is what actually
-   completes the task, so the XP arrives exactly as v1 paid it. */
-async function strike(i) {
-  const t = tasks[i];
-  t.hits = bossHits(t) + 1;
-  if (bossLeft(t) <= 0) {
-    const cat = getTaskCat(t), before = catXP(cat);
-    t.done = true;
-    t.completedAt = new Date().toISOString();
-    banner('⚔ defeated — ' + t.text);
-    announce(cat, xpFromTask(t), before);
-  } else {
-    toast(t.text + ' — ' + bossLeft(t) + ' left');
-  }
-  render();
-  await saveTasks();
-}
-
-async function unstrike(i) {
-  const t = tasks[i];
-  t.hits = Math.max(0, bossHits(t) - 1);
-  if (t.done) { t.done = false; t.completedAt = null; }
-  render();
-  await saveTasks();
-}
-
-async function toggleStep(i, si) {
-  const t = tasks[i], st = stepsOf(t);
-  if (!st[si]) return;
-  st[si].done = !st[si].done;
-  if (st.length && st.every(x => x.done) && !t.done) {
-    const cat = getTaskCat(t), before = catXP(cat);
-    t.done = true;
-    t.completedAt = new Date().toISOString();
-    banner('quest complete — ' + t.text);
-    announce(cat, xpFromTask(t), before);
-  } else if (t.done && !st.every(x => x.done)) {
-    t.done = false; t.completedAt = null;
-  }
-  render();
-  await saveTasks();
-}
-
-async function editTask(i) {
-  const t = tasks[i];
-  const text = prompt('edit task text:', t.text);
-  if (text !== null && text.trim()) t.text = text.trim();
-  const cat = prompt('category (health / relationships / wealth):', t.category || 'health');
-  if (cat && CAT_KEYS.includes(cat.trim().toLowerCase())) t.category = cat.trim().toLowerCase();
-  const q = prompt('quest (daily / main / side / story):', t.quest || 'main');
-  if (q && ['daily', 'main', 'side', 'story'].includes(q.trim().toLowerCase())) {
-    t.quest = q.trim().toLowerCase();
-    if (t.quest === 'daily' && !t.completedDates) t.completedDates = [];
-  }
-  const due = prompt('due date (YYYY-MM-DD, blank for none):', t.dueDate || '');
-  t.dueDate = due && /^\d{4}-\d{2}-\d{2}$/.test(due.trim()) ? due.trim() : null;
-
-  if (t.quest !== 'daily') {
-    const hp = prompt('how many sessions will this take? (1 = a normal task)', String(t.hp || 1));
-    const n = parseInt(hp, 10);
-    if (n > 1) { t.hp = n; t.hits = Math.min(t.hits || 0, n); }
-    else { delete t.hp; delete t.hits; }
-
-    const cur = stepsOf(t).map(x => x.text).join('\n');
-    const raw = prompt('steps, one per line (blank for none):', cur);
-    if (raw !== null) {
-      const lines = raw.split('\n').map(x => x.trim()).filter(Boolean);
-      const was = stepsOf(t);
-      t.steps = lines.map(text => ({ text, done: (was.find(x => x.text === text) || {}).done || false }));
-      if (!t.steps.length) delete t.steps;
-    }
-  }
-  render();
-  await saveTasks();
-}
-
-setFilter('all');
 init();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
