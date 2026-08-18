@@ -134,6 +134,15 @@ li{margin:0}
 @keyframes lvlup{0%{background:transparent}22%{background:var(--accent-soft)}100%{background:transparent}}
 .stat.up{animation:lvlup 1.5s ease-out}
 
+
+/* ── the hud: what is true right now ───────────────────────── */
+.hud{display:flex;flex-direction:column;gap:4px}
+.hudrow{display:flex;align-items:baseline;gap:10px;line-height:1.7}
+.hudrow .k{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--faint);min-width:52px;flex:none;
+}
+[data-skin="game"] .hudrow b{text-shadow:0 0 14px color-mix(in srgb,currentColor 55%,transparent)}
 /* ── quests ────────────────────────────────────────────────── */
 .grp{margin-bottom:16px}
 .t{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;margin-left:-6px}
@@ -426,8 +435,12 @@ function buildEvents(){
       const ds=(t.completedDates||[]).slice().sort();
       ds.forEach((d,i)=>{
         const eff=(S.effort||{})[k+'|'+d]||'normal';
-        const m=(EFFORT[eff]||EFFORT.normal).m;
-        push(d,d,st,t.text,base,m,'daily'+(eff!=='normal'?' · '+eff:''),'task');
+        const cm=(S.chain||{})[k+'|'+d]||1;
+        const m=(EFFORT[eff]||EFFORT.normal).m*cm;
+        /* v1 stores only the date. the clock lives in state.json so the
+           chain window can see dailies at all. */
+        const at=(S.ts||{})[k+'|'+d]||d;
+        push(d,at,st,t.text,base,m,'daily'+(eff!=='normal'?' · '+eff:'')+(cm>1?' · chain ×'+cm:''),'task');
         if(eff==='hard') push(d,d,'courage',t.text,base,0.5,'hard version of a daily','earned');
 
         /* discipline: a run of consecutive days. computable, not judged. */
@@ -439,8 +452,10 @@ function buildEvents(){
     } else if(t.done){
       const d=t.completedAt?dayStr(t.completedAt):(t.addedAt?dayStr(t.addedAt):today());
       const eff=(S.effort||{})[k]||'normal';
-      const m=(EFFORT[eff]||EFFORT.normal).m;
-      push(d,t.completedAt||t.addedAt||d,st,t.text,base,m,t.quest+' quest'+(eff!=='normal'?' · '+eff:''),'task');
+      const cm=(S.chain||{})[k]||1;
+      const m=(EFFORT[eff]||EFFORT.normal).m*cm;
+      push(d,t.completedAt||t.addedAt||d,st,t.text,base,m,
+        t.quest+' quest'+(eff!=='normal'?' · '+eff:'')+(cm>1?' · chain ×'+cm:''),'task');
 
       /* courage: the longer a thing sat undone, the more it cost to
          finally do it. this is the whole point of the stat. */
@@ -611,6 +626,89 @@ function read(){
   return L;
 }
 
+/* ── live state ──────────────────────────────────────────────────
+   a game is happening whether you are looking or not. these are the
+   things that are true *right now* and will not be true later. none
+   of it says anything about you — it is all clock and state. */
+
+const CHAIN_MS = 3*3600e3;    // how long a domain stays hot
+
+/* what you have touched recently, and how long the window has left */
+function hot(){
+  const now=Date.now();
+  const out=[];
+  DOMAINS.forEach(d=>{
+    const last=EV.filter(e=>e.stat===d&&e.kind==='task')
+      .map(e=>new Date(e.at).getTime()).filter(x=>!isNaN(x)).sort((a,b)=>b-a)[0];
+    if(last&&now-last<CHAIN_MS) out.push({d,left:CHAIN_MS-(now-last)});
+  });
+  return out.sort((a,b)=>a.left-b.left);
+}
+
+/* chain: finishing a different domain while one is hot pays a bonus.
+   it is a window, it is closing, and that is the whole mechanic. */
+function chainMult(stat){
+  const h=hot().filter(x=>x.d!==stat);
+  if(!h.length) return 1;
+  return 1 + Math.min(0.5, 0.25*h.length);
+}
+
+function hhmm(ms){
+  if(ms<=0) return '0m';
+  const m=Math.floor(ms/60000), h=Math.floor(m/60);
+  return h? h+'h '+(m%60)+'m' : m+'m';
+}
+
+/* ms until the streak actually breaks */
+function streakDeadline(){
+  const d=new Date(); d.setHours(24,0,0,0);
+  return d.getTime()-Date.now();
+}
+
+function hud(){
+  const td=today(), rows=[];
+  const n=dailies().length, done=clearedCount(td), tgt=targetFor(td);
+  const h=hot();
+
+  /* the window that is open right now */
+  if(h.length){
+    const names=h.map(x=>'<b style="color:var(--s-'+x.d+')">'+STATS[x.d].g+' '+x.d+'</b>');
+    const soon=h[0];
+    rows.push('<div class="hudrow"><span class="k">hot</span>'+
+      names.join(' ')+' <span class="q">· closes in '+hhmm(soon.left)+'</span></div>');
+    const cold=DOMAINS.filter(d=>!h.some(x=>x.d===d));
+    if(cold.length){
+      const m=1+Math.min(0.5,0.25*h.length);
+      rows.push('<div class="hudrow"><span class="k">chain</span>'+
+        'anything in '+cold.map(d=>'<span style="color:var(--s-'+d+')">'+d+'</span>').join(' / ')+
+        ' pays <b>×'+m.toFixed(2).replace(/0$/,'')+'</b></div>');
+    }
+  } else {
+    rows.push('<div class="hudrow"><span class="k">hot</span><span class="q">nothing. '+
+      'first thing you finish opens a '+(CHAIN_MS/3600e3)+'h window.</span></div>');
+  }
+
+  /* the board, right now */
+  if(n) rows.push('<div class="hudrow"><span class="k">board</span>'+done+'/'+tgt+
+    ' to clear <span class="q">· '+(n-done)+' left on the list</span></div>');
+
+  /* what is at risk, as a clock — not as a judgement */
+  const st=streak();
+  if(st>0&&!dayCleared(td))
+    rows.push('<div class="hudrow"><span class="k">streak</span>'+st+
+      ' <span class="q">· breaks in '+hhmm(streakDeadline())+' unless you clear</span></div>');
+  else if(st>0)
+    rows.push('<div class="hudrow"><span class="k">streak</span>'+st+' <span class="q">· held</span></div>');
+
+  /* the oldest thing on the board, priced */
+  const b=bosses();
+  if(b.length) rows.push('<div class="hudrow"><span class="k">boss</span>'+
+    esc(b[0].t.text)+' <span class="q">· '+b[0].held+'d · +'+
+    Math.round(baseXP(b[0].t)*Math.min(2,b[0].held/DEFER_DAYS))+' courage</span></div>');
+
+  return '<div class="hud">'+rows.join('')+'</div>';
+}
+
 /* ── chapters: the week as prose, not a stat dump ─────────────── */
 function chapter(w){
   const evs=EV.filter(e=>weekOf(e.day)===w);
@@ -673,7 +771,7 @@ async function putFile(f,obj,s,msg){
   return (await r.json()).content.sha;
 }
 
-const freshState=()=>({v:2,becoming:null,stat:{},effort:{},days:{},arcs:[],redeemed:[],
+const freshState=()=>({v:2,becoming:null,stat:{},effort:{},chain:{},ts:{},days:{},arcs:[],redeemed:[],
   shop:[{id:'r1',n:'an hour of anything, guilt-free',c:300},
         {id:'r2',n:'takeout, no argument',c:800},
         {id:'r3',n:'a whole day off',c:3000}]});
@@ -692,9 +790,10 @@ async function load(){
     try{const c=await getFile('state.json');S=c.data||freshState();stateSha=c.sha;}
     catch(e){S=freshState();stateSha=null;}
     S.v=2; S.stat=S.stat||{}; S.effort=S.effort||{}; S.days=S.days||{};
-    S.arcs=S.arcs||[]; S.shop=S.shop||[]; S.redeemed=S.redeemed||[];
+    S.arcs=S.arcs||[]; S.shop=S.shop||[]; S.redeemed=S.redeemed||[]; S.chain=S.chain||{}; S.ts=S.ts||{};
     EV=buildEvents();
-    if(!S.becoming){showCreate();}else{render();}
+    if(!S.becoming) S.becoming={line:'',priorities:['vitality','prosperity','connection'],since:today()};
+    render();
     status('');
   }catch(e){status('error: '+e.message);}
 }
@@ -738,14 +837,20 @@ async function tick(i,eff){
   const bp=getLevel(totalXP()), wasClear=dayCleared(td);
   const k=keyOf(t);
 
+  S.chain=S.chain||{}; S.ts=S.ts||{};
+  const cm=chainMult(statOf(t));
   if(t.quest==='daily'){
     t.completedDates=t.completedDates||[];
     if(!t.completedDates.includes(td))t.completedDates.push(td);
     if(eff&&eff!=='normal')S.effort[k+'|'+td]=eff;
+    if(cm>1)S.chain[k+'|'+td]=cm;
+    S.ts[k+'|'+td]=new Date().toISOString();
   }else{
     t.done=true; t.completedAt=new Date().toISOString();
     if(eff&&eff!=='normal')S.effort[k]=eff;
+    if(cm>1)S.chain[k]=cm;
   }
+  if(cm>1) toast('chain ×'+cm.toFixed(2).replace(/0$/,''));
   const prev=EV; EV=buildEvents();
   const gained={}; SK.forEach(s=>{
     const g=statXP(s)-prev.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0);
@@ -760,7 +865,7 @@ async function tick(i,eff){
 async function untick(i){
   const t=tasks[i],td=today(),k=keyOf(t);
   if(t.quest==='daily'){t.completedDates=(t.completedDates||[]).filter(d=>d!==td);
-    delete S.effort[k+'|'+td];}
+    delete S.effort[k+'|'+td]; delete S.ts[k+'|'+td]; delete S.chain[k+'|'+td];}
   else{t.done=false;t.completedAt=null;delete S.effort[k];}
   EV=buildEvents(); render(); await persist(true);
 }
@@ -854,16 +959,11 @@ function render(){
   const td=today(),id=identity(),p=lp(totalXP()),a30=alignment(30),aAll=alignment(null);
 
   $('who').innerHTML =
-    '<div class="title">'+id.title+'</div>'+
-    '<div class="lvl">player lvl '+p.lvl+' &nbsp; '+barHTML(p.cur,p.req,26)+
-      ' &nbsp; '+p.cur+'/'+p.req+' to '+(p.lvl+1)+' &nbsp;·&nbsp; '+totalXP()+' lifetime</div>'+
-    '<div class="becoming"><div class="line">'+esc(S.becoming.line)+'</div>'+
-      '<div class="made">made of '+S.becoming.priorities.map(x=>STATS[x].g+' '+x).join(' · ')+'</div>'+
-      '<div class="align"><b>'+(a30?a30.pct:0)+'%</b> of the last 30 days points there'+
-        (aAll?' <span class="q">· '+aAll.pct+'% all time</span>':'')+'</div></div>';
+    '<div class="title">lvl '+p.lvl+'</div>'+
+    '<div class="lvl">'+barHTML(p.cur,p.req,26)+' &nbsp;'+p.cur+'/'+p.req+
+      ' &nbsp;·&nbsp; '+totalXP()+' total</div>';
 
-  $('read').innerHTML='<div class="cap">the read</div>'+
-    read().map(l=>esc(l)).join('<br>');
+  $('read').innerHTML=hud();
 
   const n=dailies().length,done=clearedCount(td),tgt=targetFor(td),m=modeOf(td);
   $('day').innerHTML='<div class="cap">today · '+(m?m+' day':'undeclared')+'</div>'+
@@ -1006,6 +1106,8 @@ function clearToken(){
 
 applySkin();
 init();
+/* the world keeps running while you look at it */
+setInterval(()=>{ if(S&&!$('app').classList.contains('hide')) $('read').innerHTML=hud(); },30000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
