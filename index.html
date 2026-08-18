@@ -6,51 +6,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest.json">
 <style>
-body{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;padding:14px;max-width:780px;
- margin:0 auto;line-height:1.5;font-size:14px}
-pre{white-space:pre-wrap;margin:0 0 4px;font:inherit}
-h1{font-size:18px;margin:0 0 2px;letter-spacing:.06em}
-hr{border:0;border-top:1px solid currentColor;opacity:.18;margin:14px 0}
-ul{margin:4px 0 10px;padding-left:0;list-style:none}
-li{margin:2px 0}
+body{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;padding:14px;max-width:800px;
+ margin:0 auto;line-height:1.55;font-size:14px}
+pre{white-space:pre-wrap;margin:0;font:inherit}
+h1{font-size:19px;margin:0;letter-spacing:.07em}
+hr{border:0;border-top:1px solid currentColor;opacity:.15;margin:15px 0}
+ul{margin:4px 0 12px;padding-left:0;list-style:none}
+li{margin:3px 0}
 button{font:inherit;cursor:pointer;padding:1px 7px}
-input,select{font:inherit;padding:2px 5px}
-.d{opacity:.45}
-.q{opacity:.6;font-size:13px}
+input,select,textarea{font:inherit;padding:3px 6px}
+.d{opacity:.42}
+.q{opacity:.62;font-size:13px}
 .on{font-weight:bold;text-decoration:underline}
 .hide{display:none}
-#toast{position:fixed;right:10px;bottom:10px;padding:7px 12px;border:1px solid;background:Canvas}
+.big{font-size:16px}
+#toast{position:fixed;right:10px;bottom:10px;padding:8px 13px;border:1px solid;background:Canvas}
 </style>
 </head>
 <body>
 
 <h1>playable</h1>
-<div class="q" id="sub">a save file for your actual life</div>
+<div class="q" id="tag">a save file for your actual life</div>
 
 <div id="auth" class="hide">
-  <p>repo (user/repo):<br><input id="repo-input" placeholder="piyushgyl01/playable" size="28"></p>
-  <p>a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable" target="_blank">github token</a> with repo scope:<br>
-     <input id="token-input" placeholder="ghp_..." size="28"></p>
+  <p>repo (user/repo):<br><input id="repo-input" placeholder="piyushgyl01/playable" size="30"></p>
+  <p>a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable" target="_blank">github token</a>, repo scope:<br>
+     <input id="token-input" placeholder="ghp_..." size="30"></p>
   <button onclick="saveToken()">open the save</button>
 </div>
 
-<div id="app" class="hide">
+<!-- character creation. the app is meaningless without a destination. -->
+<div id="create" class="hide">
+  <hr>
+  <p class="big">who are you trying to become?</p>
+  <p class="q">one sentence. not a goal — a person. this is the thing every number
+     in here will be measured against, so make it true.</p>
+  <textarea id="c-line" rows="2" style="width:100%;max-width:520px"
+    placeholder="someone who trains, builds real things, and is still close to the people who matter"></textarea>
+  <p class="q">now pick the three that person is made of:</p>
+  <div id="c-stats"></div>
+  <p><button onclick="beginRun()" class="big">begin</button></p>
+</div>
 
+<div id="app" class="hide">
   <hr><pre id="who"></pre>
   <hr><pre id="read"></pre>
   <hr><pre id="day"></pre>
-  <div id="modes"></div>
-  <div id="rest"></div>
+  <div id="modes"></div><div id="rest"></div>
 
   <hr><div id="quests"></div>
-
   <form onsubmit="addTask(event)">
-    <input id="inp" placeholder="what needs doing?" size="24">
-    <select id="cat-input">
-      <option value="health">health</option>
-      <option value="relationships">relationships</option>
-      <option value="wealth">wealth</option>
-    </select>
+    <input id="inp" placeholder="what needs doing?" size="22">
+    <select id="stat-input"></select>
     <select id="quest-input">
       <option value="daily">daily</option>
       <option value="main" selected>main</option>
@@ -60,35 +67,37 @@ input,select{font:inherit;padding:2px 5px}
     <button type="submit">add</button>
   </form>
 
-  <hr><pre id="pillars"></pre>
+  <hr><div id="bosses"></div>
+  <hr><pre id="stats"></pre>
 
-  <p><button onclick="tog('more')">more</button>
+  <p><button onclick="tog('arcs-w')">arcs</button>
+     <button onclick="tog('chap')">chapters</button>
+     <button onclick="tog('rew')">rewards</button>
      <button onclick="tog('ledger')">the ledger</button>
-     <button onclick="tog('chapters')">chapters</button></p>
+     <button onclick="tog('cfg')">·</button></p>
 
-  <div id="chapters" class="hide"></div>
+  <div id="arcs-w" class="hide">
+    <hr><div id="arcs"></div>
+    <form onsubmit="addArc(event)"><input id="a-name" placeholder="name an arc" size="24">
+      <button type="submit">begin</button></form>
+  </div>
 
-  <div id="more" class="hide">
-    <hr><b>arcs</b> <span class="q">— the chapters you're trying to live</span>
-    <div id="arcs"></div>
-    <form onsubmit="addArc(event)">
-      <input id="a-name" placeholder="name an arc" size="22">
-      <button type="submit">begin</button>
-    </form>
+  <div id="chap" class="hide"><hr><div id="chapters"></div></div>
 
-    <hr><b>rewards</b> <span class="q">— what the xp is actually for</span>
-    <div id="shop"></div>
-    <form onsubmit="addReward(event)">
-      <input id="r-name" placeholder="a real reward" size="18">
-      <input id="r-cost" type="number" value="500" min="1" style="width:64px">
-      <button type="submit">add</button>
-    </form>
+  <div id="rew" class="hide">
+    <hr><div id="shop"></div>
+    <form onsubmit="addReward(event)"><input id="r-name" placeholder="a real reward" size="20">
+      <input id="r-cost" type="number" value="500" min="1" style="width:66px">
+      <button type="submit">add</button></form>
     <div id="vault"></div>
-
-    <hr><span class="q"><a href="#" onclick="clearToken();return false">change token / repo</a></span>
   </div>
 
   <div id="ledger" class="hide"></div>
+
+  <div id="cfg" class="hide">
+    <hr><div id="becoming-edit"></div>
+    <p class="q"><a href="#" onclick="clearToken();return false">change token / repo</a></p>
+  </div>
 </div>
 
 <p id="status" class="q"></p>
@@ -98,615 +107,687 @@ input,select{font:inherit;padding:2px 5px}
 /* ═══════════════════════════════════════════════════════════════
    playable — a persistent character generated by real life.
 
-   the engine is the product. it is deterministic: the same events
-   always produce the same state, and every number can name the
-   rule that moved it.
-
      REAL ACTION → RECORDED EVENT → RULE → PERSISTENT STATE
 
-   tasks.json keeps v1's exact shape and is the event source, so
-   the CLI and the Actions keep working untouched. everything this
-   version adds lives in state.json, which they never read.
+   deterministic. no model runs. every number is a fold over an
+   event log and can name the rule that produced it.
+
+   tasks.json keeps v1's exact shape and remains the event source,
+   so the `todo` CLI and the GitHub Actions keep working untouched.
+   everything this version adds lives in state.json, which they
+   never read.
    ═══════════════════════════════════════════════════════════════ */
 
-const CATS = { health: '💪', relationships: '🤝', wealth: '💰' };
-const CK = ['health', 'relationships', 'wealth'];
-
-/* what each number is allowed to claim. it is evidence of
-   investment — never a measurement of the thing itself. */
-const MEANS = {
-  health: 'evidence you invested in your body',
-  relationships: 'evidence you invested in people',
-  wealth: 'evidence you invested in what you are building'
+/* ── the seven ──────────────────────────────────────────────────
+   five are domains: they say where an action landed.
+   two are earned: they say something about how you acted, and you
+   cannot tag a task with them — only the rules can award them. */
+const STATS = {
+  vitality:   { g:'💪', d:'domain', m:'evidence you invested in your body' },
+  connection: { g:'🤝', d:'domain', m:'evidence you invested in people' },
+  prosperity: { g:'💰', d:'domain', m:'evidence you invested in what you are building' },
+  wisdom:     { g:'📖', d:'domain', m:'evidence you invested in knowing more' },
+  creativity: { g:'✷',  d:'domain', m:'evidence you made a thing that did not exist' },
+  courage:    { g:'⚔',  d:'earned', m:'evidence you did the thing you were avoiding' },
+  discipline: { g:'⛓',  d:'earned', m:'evidence you kept going after it stopped being novel' }
 };
+const SK = Object.keys(STATS);
+const DOMAINS = SK.filter(k => STATS[k].d === 'domain');
 
-/* effort. normal is 1.0, so a save that never logs effort produces
-   numbers identical to v1's. you only diverge by saying so. */
+/* how the two earned stats are won. both are computable from
+   timestamps alone — nothing is judged, nothing is guessed. */
+const DEFER_DAYS = 7;      // a task open this long is being avoided
+const RUN_FOR_DISCIPLINE = 3;
+const DISCIPLINE_PER_RUN = 10;
+const DISCIPLINE_PER_CLEAR = 25;
+
 const EFFORT = {
-  survival: { m: 0.5, label: 'survival', mark: '·', blurb: 'the two-minute version. it counts.' },
-  normal:   { m: 1.0, label: 'normal',   mark: '',  blurb: '' },
-  hard:     { m: 2.0, label: 'hard',     mark: '!', blurb: 'the version that cost you something.' }
+  min:    { m:0.5, mark:'min',  b:'the two-minute version. it still counts.' },
+  normal: { m:1.0, mark:'',     b:'' },
+  hard:   { m:2.0, mark:'hard', b:'the version that cost you something.' }
 };
-
-/* the day declares its own difficulty. this does not change what
-   anything is worth — it changes what counts as clearing the day,
-   so a bad day can still be won. */
 const MODES = {
-  full:     { label: 'full',     frac: 1.00, blurb: 'everything on the board' },
-  normal:   { label: 'normal',   frac: 0.60, blurb: 'a real day' },
-  low:      { label: 'low',      frac: 0.30, blurb: 'not much left in the tank' },
-  recovery: { label: 'recovery', frac: 0.00, blurb: 'resting is the quest' }
+  full:     { f:1.00, b:'everything on the board' },
+  normal:   { f:0.60, b:'a real day' },
+  low:      { f:0.30, b:'not much left in the tank' },
+  recovery: { f:0.00, b:'resting is the quest' }
 };
-
 const PAIR_XP = 25, TRI_XP = 100, REST_XP = 25;
+
+/* v1's category names, kept so old saves migrate cleanly */
+const LEGACY = { health:'vitality', relationships:'connection', wealth:'prosperity' };
+const GUESS = [
+  [/(dsa|boot\.?dev|class|read|study|learn|course|book|lecture|full ?stack|java|leetcode)/i,'wisdom'],
+  [/(mograph|design|edit|render|draw|write|animate|music|film|shoot|make)/i,'creativity'],
+  [/(gym|run|walk|steps|water|protein|sleep|creatine|stretch|heart|clean|bed|meal|eat)/i,'vitality'],
+  [/(mom|dad|father|mother|friend|family|call|talk|meet|dinner)/i,'connection'],
+  [/(job|apply|client|work|invoice|money|startup|portfolio|airbox|prism)/i,'prosperity']
+];
 
 let repo = localStorage.getItem('gh_repo') || '';
 let token = localStorage.getItem('gh_token') || '';
 let sha = '', stateSha = null;
-let tasks = [], archived = [];
-let S = null;              // state.json
-let EV = [];               // derived event log
+let tasks = [], archived = [], S = null, EV = [];
 
 const $ = id => document.getElementById(id);
 const status = m => $('status').textContent = m;
 const esc = s => String(s).replace(/[&<>"']/g, c =>
-  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* ── time ────────────────────────────────────────────────────── */
-const dayStr = d => new Date(d).toISOString().slice(0, 10);
+/* ── time ─────────────────────────────────────────────────────── */
+const dayStr = d => new Date(d).toISOString().slice(0,10);
 const today = () => dayStr(new Date());
-function addDays(ds, n) {
-  const p = ds.split('-').map(Number);
-  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
-function weekOf(ds) {                       // monday-anchored week key
-  const p = ds.split('-').map(Number);
-  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
-  return d.toISOString().slice(0, 10);
-}
-function stamp(ts) {
-  const d = new Date(ts); if (isNaN(d)) return String(ts);
-  const p = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-}
-const MON = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-const pretty = ds => MON[+ds.split('-')[1] - 1] + ' ' + (+ds.split('-')[2]);
+function addDays(ds,n){const p=ds.split('-').map(Number);
+  const d=new Date(Date.UTC(p[0],p[1]-1,p[2]));d.setUTCDate(d.getUTCDate()+n);
+  return d.toISOString().slice(0,10);}
+const between = (a,b) => Math.round((new Date(b)-new Date(a))/864e5);
+function weekOf(ds){const p=ds.split('-').map(Number);
+  const d=new Date(Date.UTC(p[0],p[1]-1,p[2]));
+  d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
+const MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const pretty = ds => MON[+ds.split('-')[1]-1]+' '+(+ds.split('-')[2]);
 
-/* ── xp rules ────────────────────────────────────────────────── */
-const xpForLevel = L => Math.floor(100 * Math.pow(L, 1.5));
-function getLevel(xp) { let l = 1; while (xp >= xpForLevel(l)) l++; return l; }
-function levelProgress(xp) {
-  const l = getLevel(xp), p = l > 1 ? xpForLevel(l - 1) : 0, n = xpForLevel(l);
-  return { lvl: l, cur: xp - p, req: n - p };
-}
-function bar(cur, max, w) {
-  const f = Math.max(0, Math.min(w, Math.floor(cur / (max || 1) * w)));
-  return '█'.repeat(f) + '░'.repeat(w - f);
-}
+/* ── levels ───────────────────────────────────────────────────── */
+const xpForLevel = L => Math.floor(100*Math.pow(L,1.5));
+function getLevel(x){let l=1;while(x>=xpForLevel(l))l++;return l;}
+function lp(x){const l=getLevel(x),p=l>1?xpForLevel(l-1):0,n=xpForLevel(l);
+  return {lvl:l,cur:x-p,req:n-p};}
+function bar(c,m,w){const f=Math.max(0,Math.min(w,Math.floor(c/(m||1)*w)));
+  return '█'.repeat(f)+'░'.repeat(w-f);}
 
-/* v1's table, unchanged */
-function baseXP(t) {
-  if (t.quest === 'daily') return 25;
-  if (t.quest === 'main') return 200;
-  if (t.quest === 'story') return 100;
-  if (t.quest === 'side') return 50;
-  if (t.priority === 3) return 500;
-  if (t.priority === 2) return 100;
-  if (t.priority === 1) return 75;
+function baseXP(t){
+  if(t.quest==='daily')return 25;
+  if(t.quest==='main')return 200;
+  if(t.quest==='story')return 100;
+  if(t.quest==='side')return 50;
+  if(t.priority===3)return 500;
+  if(t.priority===2)return 100;
+  if(t.priority===1)return 75;
   return 50;
 }
-function catOf(t) {
-  if (t.category) return t.category;
-  const s = (t.text || '').toLowerCase();
-  if (/(mom|dad|friend|family|talk|call|meet)/.test(s)) return 'relationships';
-  if (/(run|gym|walk|breakfast|meds|passport)/.test(s)) return 'health';
-  return 'wealth';
+const keyOf = t => (t.addedAt||'')+'|'+(t.text||'');
+
+/* which of the five domains a task belongs to. an explicit tag in
+   state.json wins; otherwise migrate from v1's category, then fall
+   back to reading the text. */
+function statOf(t){
+  const k=keyOf(t);
+  if(S && S.stat && S.stat[k] && STATS[S.stat[k]]) return S.stat[k];
+  const txt=(t.text||'');
+  for(const [re,s] of GUESS) if(re.test(txt)) return s;
+  return LEGACY[t.category] || 'prosperity';
 }
-const keyOf = t => (t.addedAt || '') + '|' + (t.text || '');
 
-/* ── the event log ───────────────────────────────────────────────
-   every number in this app is a fold over this list. nothing is
-   stored that isn't derivable from it, which is what makes "why
-   did that move?" answerable. */
-function buildEvents() {
-  const ev = [];
-  [...tasks, ...archived].forEach(t => {
-    if (t.quest === 'reward') return;
-    const cat = catOf(t), base = baseXP(t), k = keyOf(t);
-    if (t.quest === 'daily') {
-      (t.completedDates || []).forEach(d => {
-        const eff = (S.effort || {})[k + '|' + d] || 'normal';
-        const m = (EFFORT[eff] || EFFORT.normal).m;
-        ev.push({ day: d, at: d, cat, text: t.text, base, mult: m,
-          xp: Math.round(base * m), rule: 'daily' + (eff !== 'normal' ? ' · ' + eff : ''), kind: 'task' });
+/* ── the event log ─────────────────────────────────────────────── */
+function buildEvents(){
+  const ev=[];
+  const push=(day,at,stat,text,base,mult,rule,kind)=>
+    ev.push({day,at,stat,text,base,mult,xp:Math.round(base*mult),rule,kind});
+
+  [...tasks,...archived].forEach(t=>{
+    if(t.quest==='reward')return;
+    const st=statOf(t), base=baseXP(t), k=keyOf(t);
+
+    if(t.quest==='daily'){
+      const ds=(t.completedDates||[]).slice().sort();
+      ds.forEach((d,i)=>{
+        const eff=(S.effort||{})[k+'|'+d]||'normal';
+        const m=(EFFORT[eff]||EFFORT.normal).m;
+        push(d,d,st,t.text,base,m,'daily'+(eff!=='normal'?' · '+eff:''),'task');
+        if(eff==='hard') push(d,d,'courage',t.text,base,0.5,'hard version of a daily','earned');
+
+        /* discipline: a run of consecutive days. computable, not judged. */
+        let run=1;
+        for(let j=i-1;j>=0;j--){ if(ds[j]===addDays(ds[j+1],-1)) run++; else break; }
+        if(run>=RUN_FOR_DISCIPLINE)
+          push(d,d,'discipline',t.text,DISCIPLINE_PER_RUN,1,run+' days running','earned');
       });
-    } else if (t.done) {
-      const d = t.completedAt ? dayStr(t.completedAt) : (t.addedAt ? dayStr(t.addedAt) : today());
-      ev.push({ day: d, at: t.completedAt || t.addedAt || d, cat, text: t.text, base, mult: 1,
-        xp: base, rule: t.quest + ' quest', kind: 'task' });
+    } else if(t.done){
+      const d=t.completedAt?dayStr(t.completedAt):(t.addedAt?dayStr(t.addedAt):today());
+      const eff=(S.effort||{})[k]||'normal';
+      const m=(EFFORT[eff]||EFFORT.normal).m;
+      push(d,t.completedAt||t.addedAt||d,st,t.text,base,m,t.quest+' quest'+(eff!=='normal'?' · '+eff:''),'task');
+
+      /* courage: the longer a thing sat undone, the more it cost to
+         finally do it. this is the whole point of the stat. */
+      if(t.addedAt&&t.completedAt){
+        const held=between(dayStr(t.addedAt),d);
+        if(held>=DEFER_DAYS){
+          const mult=Math.min(2,held/DEFER_DAYS);
+          push(d,t.completedAt,'courage',t.text,base,mult,
+            'carried '+held+' days before you did it','earned');
+        }
+      }
+      if(eff==='hard') push(d,t.completedAt||d,'courage',t.text,base,0.5,'the hard version','earned');
     }
   });
 
-  /* rest, on days you declared recovery. the vision is explicit
-     that rest is play, not the absence of it. */
-  Object.keys(S.days || {}).forEach(d => {
-    if (S.days[d] && S.days[d].rest) {
-      ev.push({ day: d, at: d, cat: 'health', text: 'rested', base: REST_XP, mult: 1,
-        xp: REST_XP, rule: 'rest · recovery day', kind: 'rest' });
-    }
+  Object.keys(S.days||{}).forEach(d=>{
+    if((S.days[d]||{}).rest) push(d,d,'vitality','rested',REST_XP,1,'rest · recovery day','rest');
   });
 
-  /* balance bonuses, paid per day */
-  const byDay = {};
-  ev.forEach(e => (byDay[e.day] = byDay[e.day] || new Set()).add(e.cat));
-  Object.keys(byDay).forEach(d => {
-    const n = CK.filter(c => byDay[d].has(c)).length;
-    if (n >= 3) ev.push({ day: d, at: d, cat: 'bonus', text: 'all three pillars', base: TRI_XP,
-      mult: 1, xp: TRI_XP, rule: 'tri-pillar', kind: 'bonus' });
-    else if (n === 2) ev.push({ day: d, at: d, cat: 'bonus', text: 'two pillars', base: PAIR_XP,
-      mult: 1, xp: PAIR_XP, rule: 'pair', kind: 'bonus' });
+  /* balance bonuses across the five domains */
+  const byDay={};
+  ev.filter(e=>STATS[e.stat]&&STATS[e.stat].d==='domain')
+    .forEach(e=>(byDay[e.day]=byDay[e.day]||new Set()).add(e.stat));
+  Object.keys(byDay).forEach(d=>{
+    const n=byDay[d].size;
+    if(n>=3) push(d,d,'discipline','a broad day',TRI_XP,1,n+' domains in one day','bonus');
+    else if(n===2) push(d,d,'discipline','two domains',PAIR_XP,1,'two domains in one day','bonus');
   });
 
-  ev.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  /* discipline for clearing the bar you set */
+  Object.keys(S.days||{}).forEach(d=>{
+    if(dayClearedRaw(d,ev)) push(d,d,'discipline','cleared the day',DISCIPLINE_PER_CLEAR,1,
+      'hit the bar you set','bonus');
+  });
+
+  ev.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
   return ev;
 }
 
-const catXP = c => EV.filter(e => e.cat === c).reduce((s, e) => s + e.xp, 0);
-const totalXP = () => EV.reduce((s, e) => s + e.xp, 0);
+const statXP = s => EV.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0);
+const totalXP = () => EV.reduce((a,e)=>a+e.xp,0);
 
-/* ── the day ─────────────────────────────────────────────────── */
-const dailies = () => tasks.filter(t => t.quest === 'daily');
-const doneOn = (t, d) => (t.completedDates || []).includes(d);
-const clearedCount = d => dailies().filter(t => doneOn(t, d)).length;
+/* ── the day ──────────────────────────────────────────────────── */
+const dailies = () => tasks.filter(t=>t.quest==='daily');
+const doneOn = (t,d) => (t.completedDates||[]).includes(d);
+const clearedCount = d => dailies().filter(t=>doneOn(t,d)).length;
+const modeOf = d => ((S.days||{})[d]||{}).mode||null;
 
-function modeOf(d) { return ((S.days || {})[d] || {}).mode || null; }
-function targetFor(d) {
-  const n = dailies().length;
-  const m = modeOf(d);
-  if (!m) return Math.max(1, Math.ceil(n * 0.6));       // undeclared days assume a real day
-  if (m === 'recovery') return 0;
-  return Math.max(1, Math.ceil(n * MODES[m].frac));
+function targetFor(d){
+  const n=dailies().length, m=modeOf(d);
+  if(m==='recovery')return 0;
+  if(!m)return Math.max(1,Math.ceil(n*0.6));
+  return Math.max(1,Math.ceil(n*MODES[m].f));
 }
-function dayCleared(d) {
-  const m = modeOf(d);
-  if (m === 'recovery') return !!((S.days || {})[d] || {}).rest;
-  const t = targetFor(d);
-  if (clearedCount(d) >= t) return true;
-  /* history predates modes: any activity at all cleared the day */
-  if (!m && d !== today()) return EV.some(e => e.day === d && e.kind === 'task');
+function dayClearedRaw(d,ev){
+  const m=modeOf(d);
+  if(m==='recovery')return !!((S.days||{})[d]||{}).rest;
+  if(clearedCount(d)>=targetFor(d))return true;
+  if(!m&&d!==today())return (ev||EV).some(e=>e.day===d&&e.kind==='task');
   return false;
 }
+const dayCleared = d => dayClearedRaw(d,EV);
 
-/* streak counts days you hit the bar you set, not days you were
-   perfect. that is the whole point of declaring the day. */
-function streak() {
-  let d = dayCleared(today()) ? today() : addDays(today(), -1);
-  let n = 0;
-  while (n < 4000 && dayCleared(d)) { n++; d = addDays(d, -1); }
+function streak(){
+  let d=dayCleared(today())?today():addDays(today(),-1),n=0;
+  while(n<4000&&dayCleared(d)){n++;d=addDays(d,-1);}
   return n;
 }
 
-/* ── identity ────────────────────────────────────────────────── */
-function identity() {
-  const tot = CK.reduce((s, c) => s + catXP(c), 0) || 1;
-  const share = {}; CK.forEach(c => share[c] = Math.round(catXP(c) / tot * 100));
-  const top = CK.slice().sort((a, b) => share[b] - share[a])[0];
-  const bot = CK.slice().sort((a, b) => share[a] - share[b])[0];
-  const spread = share[top] - share[bot];
-  const title = spread < 20 ? 'The Whole'
-    : top === 'wealth' ? 'The Builder'
-    : top === 'health' ? 'The Tempered'
-    : 'The Kin';
-  const desc = spread < 20 ? 'evenly spread'
-    : top + '-dominant' + (share[bot] < 15 ? ', ' + bot + '-starved' : '');
-  return { title, desc, share, top, bot };
+/* ── who you are ──────────────────────────────────────────────── */
+const TITLES = {
+  vitality:'The Tempered', connection:'The Kin', prosperity:'The Builder',
+  wisdom:'The Student', creativity:'The Maker',
+  courage:'The Unflinching', discipline:'The Constant'
+};
+
+function identity(){
+  const tot=SK.reduce((a,s)=>a+statXP(s),0)||1;
+  const share={}; SK.forEach(s=>share[s]=Math.round(statXP(s)/tot*100));
+  const rank=SK.slice().sort((a,b)=>share[b]-share[a]);
+  const top=rank[0], bot=DOMAINS.slice().sort((a,b)=>share[a]-share[b])[0];
+  return {share,top,bot,title:TITLES[top]||'The Player',rank};
+}
+
+/* how much of your evidence points at the person you said you're
+   becoming. this is the number the whole app exists to produce. */
+function alignment(days){
+  const want=(S.becoming&&S.becoming.priorities)||[];
+  if(!want.length)return null;
+  const from=days?addDays(today(),-days):null;
+  const rel=EV.filter(e=>!from||e.day>=from);
+  const tot=rel.reduce((a,e)=>a+e.xp,0)||1;
+  const on=rel.filter(e=>want.includes(e.stat)).reduce((a,e)=>a+e.xp,0);
+  return {pct:Math.round(on/tot*100),want,total:tot};
+}
+
+/* ── bosses ───────────────────────────────────────────────────────
+   you do not create a boss. a boss is what a task becomes when you
+   keep not doing it. */
+function bosses(){
+  const td=today();
+  return tasks.map((t,i)=>({t,i}))
+    .filter(({t})=>t.quest!=='daily'&&t.quest!=='reward'&&!t.done&&t.addedAt)
+    .map(({t,i})=>({t,i,held:between(dayStr(t.addedAt),td)}))
+    .filter(x=>x.held>=DEFER_DAYS)
+    .sort((a,b)=>b.held-a.held);
 }
 
 /* ── the read ─────────────────────────────────────────────────── */
-function neglectDays(cat) {
-  const days = [...new Set(EV.map(e => e.day))].sort();
-  if (!days.length) return 0;
-  const run = {}; CK.forEach(c => run[c] = 0);
-  const hist = [];
-  days.forEach(d => {
-    EV.filter(e => e.day === d && run[e.cat] !== undefined).forEach(e => run[e.cat] += e.xp);
-    const tot = CK.reduce((s, c) => s + run[c], 0) || 1;
-    hist.push({ d, pct: run[cat] / tot * 100 });
+function neglectDays(stat){
+  const days=[...new Set(EV.map(e=>e.day))].sort();
+  if(!days.length)return 0;
+  const run={}; SK.forEach(s=>run[s]=0);
+  const hist=[];
+  days.forEach(d=>{
+    EV.filter(e=>e.day===d).forEach(e=>{if(run[e.stat]!==undefined)run[e.stat]+=e.xp;});
+    const tot=SK.reduce((a,s)=>a+run[s],0)||1;
+    hist.push({d,pct:run[stat]/tot*100});
   });
-  let n = 0;
-  for (let i = hist.length - 1; i >= 0; i--) { if (hist[i].pct < 15) n++; else break; }
-  return n ? Math.max(n, daysBetween(hist[hist.length - n].d, today())) : 0;
+  let n=0;
+  for(let i=hist.length-1;i>=0;i--){if(hist[i].pct<10)n++;else break;}
+  return n?Math.max(n,between(hist[hist.length-n].d,today())):0;
 }
 
-function read() {
-  const L = [], td = today(), n = dailies().length;
-  const done = clearedCount(td), tgt = targetFor(td), m = modeOf(td);
+function read(){
+  const L=[],td=today(),n=dailies().length;
+  const done=clearedCount(td),tgt=targetFor(td),m=modeOf(td);
 
-  const past = [...new Set(EV.filter(e => e.kind === 'task').map(e => e.day))].filter(d => d !== td);
-  const counts = past.map(d => clearedCount(d)).filter(x => x > 0).sort((a, b) => a - b);
-  const best = counts.length ? counts[counts.length - 1] : 0;
-  const usual = counts.length ? counts[Math.floor(counts.length / 2)] : 0;
+  /* the day, judged against the bar you set — never against 100% */
+  if(!n) L.push('no dailies yet. add a few and this fills in.');
+  else if(m==='recovery')
+    L.push((S.days[td]||{}).rest ? 'recovery day, and you took it. that is a cleared day.'
+      : 'recovery day. resting is the quest — mark it once you have.');
+  else if(done>=tgt&&tgt>0) L.push('day cleared — '+done+' of '+n+', you needed '+tgt+'.');
+  else if(done===0) L.push('nothing yet today. '+tgt+' clears it.');
+  else L.push(done+' of '+n+'. '+(tgt-done)+' more clears the day.');
 
-  if (!n) L.push('no dailies yet. add a few and this fills in.');
-  else if (m === 'recovery') {
-    L.push(((S.days[td] || {}).rest)
-      ? 'recovery day, and you took it. that is a cleared day.'
-      : 'recovery day. resting is the quest — mark it when you have.');
-  } else if (done >= tgt && tgt > 0) {
-    L.push('day cleared — ' + done + ' of ' + n + ', you needed ' + tgt + '.' +
-      (done > best ? ' best day yet.' : ''));
-  } else if (done === 0) {
-    L.push('nothing yet today. you need ' + tgt + ' to clear it' +
-      (usual ? '; your usual day is ' + usual : '') + '.');
-  } else {
-    L.push(done + ' of ' + n + '. ' + (tgt - done) + ' more clears the day.');
+  /* against the person you said you were becoming */
+  const a30=alignment(30);
+  if(a30&&S.becoming.line){
+    L.push('you said you are becoming '+S.becoming.line.replace(/\.$/,'')+'.');
+    L.push('  the last 30 days say '+a30.pct+'% of your evidence points there.');
   }
 
-  const id = identity();
-  L.push(id.share[id.top] >= 55
-    ? id.top + ' is carrying this run — ' + id.share[id.top] + '% of everything you have done.'
-    : 'effort is spread: ' + CK.map(c => c + ' ' + id.share[c] + '%').join(', ') + '.');
+  const id=identity();
+  const led=id.rank.filter(s=>id.share[s]>0)[0];
+  if(led&&id.share[led]>=45)
+    L.push(led+' is carrying this run — '+id.share[led]+'% of everything you have done.');
 
-  CK.forEach(c => { const k = neglectDays(c);
-    if (k >= 3) L.push(c + ' has been under 15% for ' + k + ' days.'); });
+  DOMAINS.forEach(s=>{const k=neglectDays(s);
+    if(k>=5) L.push(s+' has been under 10% for '+k+' days.');});
 
-  const idle = (() => {
-    const last = [...new Set(EV.filter(e => e.kind === 'task').map(e => e.day))].sort().pop();
-    return last ? daysBetween(last, td) : 0;
-  })();
-  if (idle >= 2) L.push('you have not played in ' + idle + ' days. the save is where you left it.');
+  /* what is sitting on you */
+  const b=bosses();
+  if(b.length) L.push(b.length+' thing'+(b.length>1?'s':'')+' you keep not doing — the oldest is '+
+    b[0].held+' days old. finishing it is worth courage.');
 
-  const wk = d => EV.filter(e => e.kind === 'task' && weekOf(e.day) === d).length;
-  const tw = wk(weekOf(td)), lw = wk(weekOf(addDays(td, -7)));
-  if (tw || lw) L.push('this week ' + tw + ', last week ' + lw + ' — ' +
-    (tw > lw ? 'climbing.' : tw < lw ? 'slowing.' : 'level.'));
+  const last=[...new Set(EV.filter(e=>e.kind==='task').map(e=>e.day))].sort().pop();
+  const idle=last?between(last,td):0;
+  if(idle>=2) L.push('you have not played in '+idle+' days. the save is where you left it.');
 
-  const reach = CK.map(c => { const p = levelProgress(catXP(c));
-    return { l: c + ' lvl ' + (p.lvl + 1), left: p.req - p.cur }; });
-  const pp = levelProgress(totalXP());
-  reach.push({ l: 'player lvl ' + (pp.lvl + 1), left: pp.req - pp.cur });
-  reach.sort((a, b) => a.left - b.left);
-  L.push(Math.ceil(reach[0].left / 25) + ' more completions to ' + reach[0].l + '.');
+  const wk=w=>EV.filter(e=>e.kind==='task'&&weekOf(e.day)===w).length;
+  const tw=wk(weekOf(td)),lw=wk(weekOf(addDays(td,-7)));
+  if(tw||lw) L.push('this week '+tw+', last week '+lw+' — '+(tw>lw?'climbing.':tw<lw?'slowing.':'level.'));
 
-  const st = streak();
-  if (st >= 2) L.push(st + ' days running where you hit the bar you set.');
+  const st=streak();
+  if(st>=2) L.push(st+' days running where you hit the bar you set.');
   return L;
 }
 
-/* ── chapters: the week, sealed and kept ─────────────────────── */
-function chapterFor(wk) {
-  const evs = EV.filter(e => weekOf(e.day) === wk);
-  if (!evs.length) return null;
-  const days = [...new Set(evs.filter(e => e.kind === 'task').map(e => e.day))];
-  const by = {}; CK.forEach(c => by[c] = evs.filter(e => e.cat === c).reduce((s, e) => s + e.xp, 0));
-  const cleared = days.filter(dayCleared).length;
-  const hard = evs.filter(e => (e.rule || '').includes('hard')).length;
-  const rest = evs.filter(e => e.kind === 'rest').length;
-  const top = CK.slice().sort((a, b) => by[b] - by[a])[0];
-  const L = [];
-  L.push('week of ' + pretty(wk) + ' — ' + evs.filter(e => e.kind === 'task').length +
-    ' actions across ' + days.length + ' days, ' + cleared + ' cleared.');
-  L.push('  ' + CK.map(c => CATS[c] + ' ' + by[c]).join('   ') +
-    '   → ' + top + ' led the week.');
-  if (hard) L.push('  ' + hard + ' of them you marked hard.');
-  if (rest) L.push('  ' + rest + ' recovery day' + (rest > 1 ? 's' : '') + ' taken.');
-  const tri = evs.filter(e => e.rule === 'tri-pillar').length;
-  if (tri) L.push('  ' + tri + ' day' + (tri > 1 ? 's' : '') + ' touching all three pillars.');
-  return L.join('\n');
-}
+/* ── chapters: the week as prose, not a stat dump ─────────────── */
+function chapter(w){
+  const evs=EV.filter(e=>weekOf(e.day)===w);
+  if(!evs.length)return null;
+  const days=[...new Set(evs.filter(e=>e.kind==='task').map(e=>e.day))];
+  const by={}; SK.forEach(s=>by[s]=evs.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0));
+  const cleared=days.filter(dayCleared).length;
+  const L=[];
 
-/* ── github ──────────────────────────────────────────────────── */
-const H = () => ({ Authorization: 'token ' + token, 'Content-Type': 'application/json' });
-const dec = c => JSON.parse(decodeURIComponent(escape(atob(c.replace(/\n/g, '')))));
-const enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o, null, 2) + '\n')));
+  L.push('— week of '+pretty(w)+' —');
 
-async function getFile(f) {
-  const r = await fetch('https://api.github.com/repos/' + repo + '/contents/' + f, { headers: H() });
-  if (r.status === 404) return { data: null, sha: null };
-  if (!r.ok) throw new Error(f + ': ' + r.status);
-  const j = await r.json();
-  return { data: dec(j.content), sha: j.sha };
-}
-async function putFile(f, obj, s, msg) {
-  const body = { message: msg, content: enc(obj) };
-  if (s) body.sha = s;
-  let r = await fetch('https://api.github.com/repos/' + repo + '/contents/' + f,
-    { method: 'PUT', headers: H(), body: JSON.stringify(body) });
-  if (r.status === 409 || r.status === 422) {
-    const cur = await getFile(f);
-    const b2 = { message: msg, content: enc(obj) };
-    if (cur.sha) b2.sha = cur.sha;
-    r = await fetch('https://api.github.com/repos/' + repo + '/contents/' + f,
-      { method: 'PUT', headers: H(), body: JSON.stringify(b2) });
+  const cour=evs.filter(e=>e.stat==='courage');
+  if(cour.length){
+    const worst=cour.slice().sort((a,b)=>b.xp-a.xp)[0];
+    L.push('you gained '+by.courage+' courage. '+
+      (/carried/.test(worst.rule)
+        ? 'you finally did "'+worst.text+'" after '+worst.rule.match(/\d+/)[0]+' days of not doing it.'
+        : 'you took the hard version of "'+worst.text+'".'));
   }
-  if (!r.ok) throw new Error(f + ' save: ' + r.status);
+  if(by.discipline){
+    L.push('discipline held — '+cleared+' of '+days.length+' days cleared the bar you set.');
+  }
+  const dom=DOMAINS.slice().sort((a,b)=>by[b]-by[a])[0];
+  if(by[dom]) L.push(dom+' led the week.');
+  const rest=evs.filter(e=>e.kind==='rest').length;
+  if(rest) L.push(rest+' recovery day'+(rest>1?'s':'')+' taken, and they counted.');
+
+  const want=(S.becoming&&S.becoming.priorities)||[];
+  if(want.length){
+    const tot=evs.reduce((a,e)=>a+e.xp,0)||1;
+    const on=evs.filter(e=>want.includes(e.stat)).reduce((a,e)=>a+e.xp,0);
+    L.push(Math.round(on/tot*100)+'% of the week pointed at who you said you are becoming.');
+  }
+  const quiet=DOMAINS.filter(s=>!by[s]);
+  if(quiet.length) L.push('nothing at all in '+quiet.join(', ')+'.');
+  return L.join('\n  ');
+}
+
+/* ── github ───────────────────────────────────────────────────── */
+const H=()=>({Authorization:'token '+token,'Content-Type':'application/json'});
+const dec=c=>JSON.parse(decodeURIComponent(escape(atob(c.replace(/\n/g,'')))));
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o,null,2)+'\n')));
+
+async function getFile(f){
+  const r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+f,{headers:H()});
+  if(r.status===404)return{data:null,sha:null};
+  if(!r.ok)throw new Error(f+': '+r.status);
+  const j=await r.json(); return{data:dec(j.content),sha:j.sha};
+}
+async function putFile(f,obj,s,msg){
+  const mk=x=>{const b={message:msg,content:enc(obj)};if(x)b.sha=x;return JSON.stringify(b);};
+  let r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+f,
+    {method:'PUT',headers:H(),body:mk(s)});
+  if(r.status===409||r.status===422){
+    const cur=await getFile(f);
+    r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+f,
+      {method:'PUT',headers:H(),body:mk(cur.sha)});
+  }
+  if(!r.ok)throw new Error(f+' save: '+r.status);
   return (await r.json()).content.sha;
 }
 
-const freshState = () => ({ v: 1, days: {}, effort: {}, arcs: [], redeemed: [],
-  shop: [{ id: 'r1', n: 'an hour of anything, guilt-free', c: 300 },
-         { id: 'r2', n: 'takeout, no argument', c: 800 },
-         { id: 'r3', n: 'a whole day off', c: 3000 }] });
+const freshState=()=>({v:2,becoming:null,stat:{},effort:{},days:{},arcs:[],redeemed:[],
+  shop:[{id:'r1',n:'an hour of anything, guilt-free',c:300},
+        {id:'r2',n:'takeout, no argument',c:800},
+        {id:'r3',n:'a whole day off',c:3000}]});
 
-function backfill(l) {
-  l.forEach(t => {
-    if (t.priority === undefined) t.priority = 0;
-    if (t.dueDate === undefined) t.dueDate = null;
-    if (t.category === undefined) t.category = 'health';
-    if (t.quest === undefined) t.quest = 'main';
-  });
-  return l;
-}
+function backfill(l){l.forEach(t=>{
+  if(t.priority===undefined)t.priority=0;
+  if(t.dueDate===undefined)t.dueDate=null;
+  if(t.category===undefined)t.category='health';
+  if(t.quest===undefined)t.quest='main';});return l;}
 
-async function load() {
+async function load(){
   status('opening the save...');
-  try {
-    const a = await getFile('tasks.json');
-    tasks = backfill(a.data || []); sha = a.sha;
-    try { const b = await getFile('archive.json'); archived = backfill(b.data || []); } catch (e) { archived = []; }
-    try { const c = await getFile('state.json'); S = c.data || freshState(); stateSha = c.sha; }
-    catch (e) { S = freshState(); stateSha = null; }
-    S.days = S.days || {}; S.effort = S.effort || {}; S.arcs = S.arcs || [];
-    S.shop = S.shop || []; S.redeemed = S.redeemed || [];
-    render(); status('');
-  } catch (e) { status('error: ' + e.message); }
+  try{
+    const a=await getFile('tasks.json'); tasks=backfill(a.data||[]); sha=a.sha;
+    try{const b=await getFile('archive.json');archived=backfill(b.data||[]);}catch(e){archived=[];}
+    try{const c=await getFile('state.json');S=c.data||freshState();stateSha=c.sha;}
+    catch(e){S=freshState();stateSha=null;}
+    S.v=2; S.stat=S.stat||{}; S.effort=S.effort||{}; S.days=S.days||{};
+    S.arcs=S.arcs||[]; S.shop=S.shop||[]; S.redeemed=S.redeemed||[];
+    EV=buildEvents();
+    if(!S.becoming){showCreate();}else{render();}
+    status('');
+  }catch(e){status('error: '+e.message);}
 }
 
-let saving = false;
-async function persist(alsoTasks) {
-  if (saving) return; saving = true;
-  status('saving...');
-  try {
-    if (alsoTasks) sha = await putFile('tasks.json', tasks, sha, 'update tasks');
-    stateSha = await putFile('state.json', S, stateSha, 'update state');
-    status('saved'); setTimeout(() => status(''), 900);
-  } catch (e) { status('error: ' + e.message + ' — nothing lost, try again'); }
-  saving = false;
+let busy=false;
+async function persist(withTasks){
+  if(busy)return; busy=true; status('saving...');
+  try{
+    if(withTasks) sha=await putFile('tasks.json',tasks,sha,'update tasks');
+    stateSha=await putFile('state.json',S,stateSha,'update state');
+    status('saved'); setTimeout(()=>status(''),900);
+  }catch(e){status('error: '+e.message+' — nothing lost, try again');}
+  busy=false;
 }
 
-/* ── actions ─────────────────────────────────────────────────── */
-function toast(m) {
-  const t = $('toast'); t.textContent = m; t.classList.remove('hide');
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hide'), 2200);
+/* ── character creation ───────────────────────────────────────── */
+function showCreate(){
+  $('app').classList.add('hide'); $('create').classList.remove('hide');
+  $('c-stats').innerHTML=SK.map(s=>
+    '<label style="display:inline-block;margin:2px 10px 2px 0">'+
+    '<input type="checkbox" value="'+s+'"> '+STATS[s].g+' '+s+
+    ' <span class="q">'+STATS[s].m.replace('evidence you ','')+'</span></label>').join('<br>');
+}
+async function beginRun(){
+  const line=$('c-line').value.trim();
+  const picked=[...$('c-stats').querySelectorAll('input:checked')].map(x=>x.value);
+  if(!line){alert('write the sentence. it is the whole point.');return;}
+  if(picked.length!==3){alert('pick exactly three.');return;}
+  S.becoming={line,priorities:picked,since:today()};
+  $('create').classList.add('hide'); $('app').classList.remove('hide');
+  render(); await persist(false);
 }
 
-async function tick(i, effort) {
-  const t = tasks[i], td = today();
-  const beforeCat = catXP(catOf(t)), beforeLvl = getLevel(beforeCat);
-  const beforePlayer = getLevel(totalXP());
-  const wasCleared = dayCleared(td);
+/* ── actions ──────────────────────────────────────────────────── */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hide');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hide'),2400);}
 
-  if (t.quest === 'daily') {
-    t.completedDates = t.completedDates || [];
-    if (!t.completedDates.includes(td)) t.completedDates.push(td);
-    if (effort && effort !== 'normal') S.effort[keyOf(t) + '|' + td] = effort;
-  } else {
-    t.done = true; t.completedAt = new Date().toISOString();
+async function tick(i,eff){
+  const t=tasks[i],td=today();
+  const before={}; SK.forEach(s=>before[s]=getLevel(statXP(s)));
+  const bp=getLevel(totalXP()), wasClear=dayCleared(td);
+  const k=keyOf(t);
+
+  if(t.quest==='daily'){
+    t.completedDates=t.completedDates||[];
+    if(!t.completedDates.includes(td))t.completedDates.push(td);
+    if(eff&&eff!=='normal')S.effort[k+'|'+td]=eff;
+  }else{
+    t.done=true; t.completedAt=new Date().toISOString();
+    if(eff&&eff!=='normal')S.effort[k]=eff;
   }
-  EV = buildEvents();
-
-  const gained = catXP(catOf(t)) - beforeCat;
-  toast('+' + gained + ' ' + catOf(t) + (effort && effort !== 'normal' ? ' (' + effort + ')' : ''));
-  if (getLevel(catXP(catOf(t))) > beforeLvl) toast(catOf(t) + ' → lvl ' + getLevel(catXP(catOf(t))));
-  if (getLevel(totalXP()) > beforePlayer) toast('player → lvl ' + getLevel(totalXP()));
-  if (!wasCleared && dayCleared(td)) toast('day cleared.');
-
+  const prev=EV; EV=buildEvents();
+  const gained={}; SK.forEach(s=>{
+    const g=statXP(s)-prev.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0);
+    if(g>0)gained[s]=g;});
+  toast(Object.keys(gained).map(s=>'+'+gained[s]+' '+s).join('  '));
+  SK.forEach(s=>{if(getLevel(statXP(s))>before[s])toast(s+' → lvl '+getLevel(statXP(s)));});
+  if(getLevel(totalXP())>bp)toast('player → lvl '+getLevel(totalXP()));
+  if(!wasClear&&dayCleared(td))toast('day cleared.');
   render(); await persist(true);
 }
 
-async function untick(i) {
-  const t = tasks[i], td = today();
-  if (t.quest === 'daily') {
-    t.completedDates = (t.completedDates || []).filter(d => d !== td);
-    delete S.effort[keyOf(t) + '|' + td];
-  } else { t.done = false; t.completedAt = null; }
-  EV = buildEvents(); render(); await persist(true);
+async function untick(i){
+  const t=tasks[i],td=today(),k=keyOf(t);
+  if(t.quest==='daily'){t.completedDates=(t.completedDates||[]).filter(d=>d!==td);
+    delete S.effort[k+'|'+td];}
+  else{t.done=false;t.completedAt=null;delete S.effort[k];}
+  EV=buildEvents(); render(); await persist(true);
 }
 
-async function setMode(m) {
-  const td = today();
-  S.days[td] = S.days[td] || {};
-  S.days[td].mode = S.days[td].mode === m ? null : m;
-  if (S.days[td].mode !== 'recovery') delete S.days[td].rest;
-  EV = buildEvents(); render(); await persist(false);
+async function setMode(m){
+  const td=today(); S.days[td]=S.days[td]||{};
+  S.days[td].mode=S.days[td].mode===m?null:m;
+  if(S.days[td].mode!=='recovery')delete S.days[td].rest;
+  EV=buildEvents(); render(); await persist(false);
 }
-
-async function markRest() {
-  const td = today();
-  S.days[td] = S.days[td] || {};
-  S.days[td].rest = !S.days[td].rest;
-  EV = buildEvents();
-  if (S.days[td].rest) toast('rest counted. +' + REST_XP + ' health');
+async function markRest(){
+  const td=today(); S.days[td]=S.days[td]||{};
+  S.days[td].rest=!S.days[td].rest;
+  EV=buildEvents(); if(S.days[td].rest)toast('rest counted. +'+REST_XP+' vitality');
   render(); await persist(false);
 }
+async function retag(i){
+  const t=tasks[i];
+  const s=prompt('which domain does "'+t.text+'" belong to?\n'+DOMAINS.join(' / '),statOf(t));
+  if(!s||!DOMAINS.includes(s.trim()))return;
+  S.stat[keyOf(t)]=s.trim(); EV=buildEvents(); render(); await persist(false);
+}
 
-async function addTask(e) {
+async function addTask(e){
   e.preventDefault();
-  const v = $('inp').value.trim(); if (!v) return;
-  const q = $('quest-input').value;
-  const t = { text: v, quest: q, done: false, addedAt: new Date().toISOString(),
-    completedAt: null, priority: 0, dueDate: null, category: $('cat-input').value };
-  if (q === 'daily') t.completedDates = [];
-  tasks.push(t); $('inp').value = '';
-  EV = buildEvents(); render(); await persist(true);
+  const v=$('inp').value.trim(); if(!v)return;
+  const q=$('quest-input').value, st=$('stat-input').value;
+  const t={text:v,quest:q,done:false,addedAt:new Date().toISOString(),completedAt:null,
+    priority:0,dueDate:null,
+    category:Object.keys(LEGACY).find(k=>LEGACY[k]===st)||'wealth'};
+  if(q==='daily')t.completedDates=[];
+  tasks.push(t); S.stat[keyOf(t)]=st; $('inp').value='';
+  EV=buildEvents(); render(); await persist(true);
+}
+async function delTask(i){
+  if(!confirm('remove "'+tasks[i].text+'"?'))return;
+  tasks.splice(i,1); EV=buildEvents(); render(); await persist(true);
 }
 
-async function delTask(i) {
-  if (!confirm('remove "' + tasks[i].text + '"?')) return;
-  tasks.splice(i, 1); EV = buildEvents(); render(); await persist(true);
+async function addArc(e){
+  e.preventDefault(); const n=$('a-name').value.trim(); if(!n)return;
+  S.arcs.push({id:'a'+Date.now().toString(36),n,started:today(),steps:[],done:false});
+  $('a-name').value=''; render(); await persist(false);
 }
-
-async function addArc(e) {
-  e.preventDefault();
-  const n = $('a-name').value.trim(); if (!n) return;
-  S.arcs.push({ id: 'a' + Date.now().toString(36), n, started: today(), steps: [], done: false });
-  $('a-name').value = ''; render(); await persist(false);
+async function arcStep(id){
+  const a=S.arcs.find(x=>x.id===id); if(!a)return;
+  const s=prompt('add a stage to "'+a.n+'":'); if(!s||!s.trim())return;
+  a.steps.push({t:s.trim(),d:false}); render(); await persist(false);
 }
-async function arcStep(id) {
-  const a = S.arcs.find(x => x.id === id); if (!a) return;
-  const s = prompt('add a step to "' + a.n + '":'); if (!s || !s.trim()) return;
-  a.steps.push({ t: s.trim(), d: false }); render(); await persist(false);
-}
-async function toggleStep(id, i) {
-  const a = S.arcs.find(x => x.id === id); if (!a) return;
-  a.steps[i].d = !a.steps[i].d;
-  a.done = a.steps.length > 0 && a.steps.every(s => s.d);
-  if (a.done) toast('arc complete — ' + a.n);
+async function arcTick(id,i){
+  const a=S.arcs.find(x=>x.id===id); if(!a)return;
+  a.steps[i].d=!a.steps[i].d;
+  const was=a.done; a.done=a.steps.length>0&&a.steps.every(s=>s.d);
+  if(a.done&&!was)toast('arc complete — '+a.n);
   render(); await persist(false);
 }
-async function delArc(id) {
-  if (!confirm('drop this arc?')) return;
-  S.arcs = S.arcs.filter(x => x.id !== id); render(); await persist(false);
+async function delArc(id){
+  if(!confirm('drop this arc?'))return;
+  S.arcs=S.arcs.filter(x=>x.id!==id); render(); await persist(false);
 }
 
-const spent = () => S.redeemed.reduce((s, r) => s + r.c, 0);
-const spendable = () => totalXP() - spent();
-
-async function redeem(id) {
-  const it = S.shop.find(x => x.id === id); if (!it || spendable() < it.c) return;
-  S.redeemed.unshift({ n: it.n, c: it.c, at: today() });
-  toast('take it. ' + it.n); render(); await persist(false);
+const spent=()=>S.redeemed.reduce((a,r)=>a+r.c,0);
+const spendable=()=>totalXP()-spent();
+async function redeem(id){
+  const it=S.shop.find(x=>x.id===id); if(!it||spendable()<it.c)return;
+  S.redeemed.unshift({n:it.n,c:it.c,at:today()});
+  toast('take it. '+it.n); render(); await persist(false);
 }
-async function addReward(e) {
+async function addReward(e){
   e.preventDefault();
-  const n = $('r-name').value.trim(), c = parseInt($('r-cost').value, 10);
-  if (!n || !(c > 0)) return;
-  S.shop.push({ id: 'r' + Date.now().toString(36), n, c });
-  $('r-name').value = ''; render(); await persist(false);
+  const n=$('r-name').value.trim(),c=parseInt($('r-cost').value,10);
+  if(!n||!(c>0))return;
+  S.shop.push({id:'r'+Date.now().toString(36),n,c}); $('r-name').value='';
+  render(); await persist(false);
 }
-async function delReward(id) {
-  S.shop = S.shop.filter(x => x.id !== id); render(); await persist(false);
+async function delReward(id){S.shop=S.shop.filter(x=>x.id!==id);render();await persist(false);}
+async function editBecoming(){
+  const line=prompt('who are you trying to become?',S.becoming.line);
+  if(line&&line.trim())S.becoming.line=line.trim();
+  const p=prompt('the three stats that person is made of, comma separated:\n'+SK.join(' / '),
+    S.becoming.priorities.join(', '));
+  if(p){const a=p.split(',').map(x=>x.trim()).filter(x=>SK.includes(x));
+    if(a.length===3)S.becoming.priorities=a;}
+  render(); await persist(false);
 }
+function tog(id){$(id).classList.toggle('hide');}
 
-function tog(id) { $(id).classList.toggle('hide'); }
-
-/* ── render ──────────────────────────────────────────────────── */
-function render() {
-  EV = buildEvents();
-  const td = today(), id = identity(), p = levelProgress(totalXP());
+/* ── render ───────────────────────────────────────────────────── */
+function render(){
+  EV=buildEvents();
+  const td=today(),id=identity(),p=lp(totalXP()),a30=alignment(30),aAll=alignment(null);
 
   $('who').textContent =
-    id.title + ' · player lvl ' + p.lvl + '\n' +
-    id.desc + '\n' +
-    '[' + bar(p.cur, p.req, 24) + '] ' + p.cur + '/' + p.req + ' to lvl ' + (p.lvl + 1) +
-    '  ·  ' + totalXP() + ' lifetime';
+    id.title+' · player lvl '+p.lvl+'\n'+
+    '[' + bar(p.cur,p.req,26) + '] '+p.cur+'/'+p.req+' to '+(p.lvl+1)+'  ·  '+totalXP()+' lifetime\n\n'+
+    'becoming: '+S.becoming.line+'\n'+
+    '  made of '+S.becoming.priorities.map(s=>STATS[s].g+' '+s).join(', ')+'\n'+
+    '  '+(a30?a30.pct:0)+'% of the last 30 days points there'+
+    (aAll?'   ('+aAll.pct+'% all time)':'');
 
-  $('read').textContent = read().map(l => l).join('\n');
+  $('read').textContent=read().join('\n');
 
-  /* the day */
-  const n = dailies().length, done = clearedCount(td), tgt = targetFor(td), m = modeOf(td);
-  $('day').textContent = 'today — ' + (m ? MODES[m].label + ' day' : 'undeclared') +
-    (m === 'recovery' ? '' : '   ' + done + '/' + tgt + ' to clear   [' + bar(done, tgt || 1, 16) + ']') +
-    (dayCleared(td) ? '   ✓ cleared' : '') +
-    '\n' + streak() + ' day streak — days you hit the bar you set, not days you were perfect';
+  const n=dailies().length,done=clearedCount(td),tgt=targetFor(td),m=modeOf(td);
+  $('day').textContent='today — '+(m?m+' day':'undeclared')+
+    (m==='recovery'?'':'   '+done+'/'+tgt+' to clear   ['+bar(done,tgt||1,16)+']')+
+    (dayCleared(td)?'   ✓ cleared':'')+
+    '\n'+streak()+' day streak — days you hit the bar you set, not days you were perfect';
 
-  $('modes').innerHTML = Object.keys(MODES).map(k =>
-    '<button class="' + (m === k ? 'on' : '') + '" onclick="setMode(\'' + k + '\')" title="' +
-    MODES[k].blurb + '">' + MODES[k].label + '</button>').join(' ') +
-    ' <span class="q">' + (m ? MODES[m].blurb : 'declare the day and the bar moves to meet you') + '</span>';
-
-  $('rest').innerHTML = m === 'recovery'
-    ? '<p><button onclick="markRest()">' + ((S.days[td] || {}).rest ? '✓ rested' : 'mark rest') +
-      '</button> <span class="q">rest is play. +' + REST_XP + ' health.</span></p>'
-    : '';
+  $('modes').innerHTML=Object.keys(MODES).map(k=>
+    '<button class="'+(m===k?'on':'')+'" onclick="setMode(\''+k+'\')" title="'+MODES[k].b+'">'+
+    k+'</button>').join(' ')+' <span class="q">'+(m?MODES[m].b:'declare the day and the bar moves to meet you')+'</span>';
+  $('rest').innerHTML=m==='recovery'
+    ? '<p><button onclick="markRest()">'+((S.days[td]||{}).rest?'✓ rested':'mark rest')+
+      '</button> <span class="q">rest is play, not its absence. +'+REST_XP+' vitality.</span></p>':'';
 
   /* quests */
-  let h = '';
-  const group = (title, list, isDaily) => {
-    if (!list.length) return;
-    h += '<div class="q">' + title + '</div><ul>';
-    list.forEach(({ t, i }) => {
-      const d = isDaily ? doneOn(t, td) : t.done;
-      const eff = isDaily ? (S.effort[keyOf(t) + '|' + td] || '') : '';
-      h += '<li class="' + (d ? 'd' : '') + '">';
-      if (d) {
-        h += '<button onclick="untick(' + i + ')">✓</button> ' + CATS[catOf(t)] + ' <s>' +
-          esc(t.text) + '</s>' + (eff && eff !== 'normal' ? ' <span class="q">' + eff + '</span>' : '');
-      } else {
-        h += '<button onclick="tick(' + i + ',\'normal\')">·</button> ' + CATS[catOf(t)] + ' ' + esc(t.text);
-        if (isDaily) h += ' <span class="q">' +
-          '<button onclick="tick(' + i + ',\'survival\')" title="' + EFFORT.survival.blurb + '">min</button>' +
-          '<button onclick="tick(' + i + ',\'hard\')" title="' + EFFORT.hard.blurb + '">hard</button></span>';
-      }
-      h += ' <button class="q" onclick="delTask(' + i + ')">×</button></li>';
+  let h='';
+  const grp=(title,list,isDaily)=>{
+    if(!list.length)return;
+    h+='<div class="q">'+title+'</div><ul>';
+    list.forEach(({t,i})=>{
+      const d=isDaily?doneOn(t,td):t.done, st=statOf(t);
+      const eff=isDaily?(S.effort[keyOf(t)+'|'+td]||''):(S.effort[keyOf(t)]||'');
+      h+='<li class="'+(d?'d':'')+'">';
+      h+= d ? '<button onclick="untick('+i+')">✓</button> '+STATS[st].g+' <s>'+esc(t.text)+'</s>'+
+              (eff&&eff!=='normal'?' <span class="q">'+eff+'</span>':'')
+            : '<button onclick="tick('+i+',\'normal\')">·</button> '+STATS[st].g+' '+esc(t.text)+
+              ' <span class="q"><button onclick="tick('+i+',\'min\')" title="'+EFFORT.min.b+'">min</button>'+
+              '<button onclick="tick('+i+',\'hard\')" title="'+EFFORT.hard.b+'">hard</button></span>';
+      h+=' <button class="q" onclick="retag('+i+')" title="change domain">'+st.slice(0,3)+'</button>';
+      h+=' <button class="q" onclick="delTask('+i+')">×</button></li>';
     });
-    h += '</ul>';
+    h+='</ul>';
   };
-  const idx = q => tasks.map((t, i) => ({ t, i })).filter(x => x.t.quest === q);
-  group('daily · ' + done + '/' + n, idx('daily'), true);
-  group('main', idx('main').filter(x => !x.t.done), false);
-  group('story', idx('story').filter(x => !x.t.done), false);
-  group('side', idx('side').filter(x => !x.t.done), false);
-  $('quests').innerHTML = h || '<p class="q">nothing on the board.</p>';
+  const idx=q=>tasks.map((t,i)=>({t,i})).filter(x=>x.t.quest===q);
+  grp('daily · '+done+'/'+n,idx('daily'),true);
+  grp('main',idx('main').filter(x=>!x.t.done),false);
+  grp('story',idx('story').filter(x=>!x.t.done),false);
+  grp('side',idx('side').filter(x=>!x.t.done),false);
+  $('quests').innerHTML=h||'<p class="q">nothing on the board.</p>';
 
-  /* pillars */
-  $('pillars').textContent = CK.map(c => {
-    const q = levelProgress(catXP(c));
-    return CATS[c] + ' ' + c.padEnd(14) + 'lvl ' + String(q.lvl).padStart(2) +
-      '  [' + bar(q.cur, q.req, 14) + ']  ' + q.cur + '/' + q.req +
-      '\n   ' + MEANS[c] + ' — ' + id.share[c] + '% of the run';
+  /* bosses — what a task becomes when you keep not doing it */
+  const bs=bosses();
+  $('bosses').innerHTML = bs.length
+    ? '<div class="q">bosses — things you keep not doing. finishing one pays courage.</div><ul>'+
+      bs.map(({t,i,held})=>{
+        const mult=Math.min(2,held/DEFER_DAYS);
+        return '<li><button onclick="tick('+i+',\'normal\')">·</button> ⚔ '+esc(t.text)+
+          ' <span class="q">'+held+' days · worth +'+Math.round(baseXP(t)*mult)+' courage</span>'+
+          ' <button class="q" onclick="tick('+i+',\'hard\')">hard</button></li>';
+      }).join('')+'</ul>'
+    : '<div class="q">no bosses. nothing has been sitting longer than '+DEFER_DAYS+' days.</div>';
+
+  /* the seven */
+  $('stats').textContent=SK.map(s=>{
+    const q=lp(statXP(s)), want=S.becoming.priorities.includes(s);
+    return (want?'▸ ':'  ')+STATS[s].g+' '+s.padEnd(11)+'lvl '+String(q.lvl).padStart(2)+
+      '  ['+bar(q.cur,q.req,14)+']  '+String(id.share[s]).padStart(2)+'%'+
+      '\n     '+STATS[s].m;
   }).join('\n');
 
   /* arcs */
-  $('arcs').innerHTML = S.arcs.length ? S.arcs.map(a => {
-    const dn = a.steps.filter(s => s.d).length;
-    return '<div><b>' + esc(a.n) + '</b> <span class="q">' + dn + '/' + a.steps.length +
-      ' · since ' + pretty(a.started) + (a.done ? ' · complete' : '') + '</span> ' +
-      '<button onclick="arcStep(\'' + a.id + '\')">+ step</button> ' +
-      '<button class="q" onclick="delArc(\'' + a.id + '\')">×</button><ul>' +
-      a.steps.map((s, i) => '<li class="' + (s.d ? 'd' : '') + '">' +
-        '<button onclick="toggleStep(\'' + a.id + '\',' + i + ')">' + (s.d ? '✓' : '·') + '</button> ' +
-        (s.d ? '<s>' + esc(s.t) + '</s>' : esc(s.t)) + '</li>').join('') + '</ul></div>';
-  }).join('') : '<p class="q">no arcs. an arc is a chapter you are trying to live, not a task.</p>';
-
-  /* rewards */
-  $('shop').innerHTML = '<div class="q">' + spendable() + ' spendable · ' + spent() + ' spent</div>' +
-    S.shop.map(i => '<div>' + esc(i.n) + ' <span class="q">' + i.c + '</span> ' +
-      '<button onclick="redeem(\'' + i.id + '\')"' + (spendable() < i.c ? ' disabled' : '') + '>take</button> ' +
-      '<button class="q" onclick="delReward(\'' + i.id + '\')">×</button></div>').join('');
-  $('vault').innerHTML = S.redeemed.length
-    ? '<div class="q">taken: ' + S.redeemed.slice(0, 8).map(r => esc(r.n) + ' (' + pretty(r.at) + ')').join(', ') + '</div>'
-    : '';
+  $('arcs').innerHTML=S.arcs.length?S.arcs.map(a=>{
+    const dn=a.steps.filter(s=>s.d).length;
+    return '<div><b>'+esc(a.n)+'</b> <span class="q">stage '+Math.min(dn+1,a.steps.length||1)+
+      ' of '+(a.steps.length||'?')+' · since '+pretty(a.started)+(a.done?' · complete':'')+'</span> '+
+      '<button onclick="arcStep(\''+a.id+'\')">+ stage</button> '+
+      '<button class="q" onclick="delArc(\''+a.id+'\')">×</button><ul>'+
+      a.steps.map((s,i)=>'<li class="'+(s.d?'d':'')+'"><button onclick="arcTick(\''+a.id+'\','+i+')">'+
+        (s.d?'✓':'·')+'</button> '+(s.d?'<s>'+esc(s.t)+'</s>':esc(s.t))+
+        (i===a.steps.length-1&&a.steps.length>1?' <span class="q">final</span>':'')+'</li>').join('')+
+      '</ul></div>';
+  }).join(''):'<p class="q">no arcs. an arc is a chapter you are trying to live, not a task.</p>';
 
   /* chapters */
-  const weeks = [...new Set(EV.map(e => weekOf(e.day)))].sort().reverse();
-  $('chapters').innerHTML = '<hr>' + (weeks.length
-    ? weeks.slice(0, 12).map(w => '<pre>' + esc(chapterFor(w) || '') + '</pre>').join('<br>')
-    : '<p class="q">no weeks yet.</p>');
+  const weeks=[...new Set(EV.map(e=>weekOf(e.day)))].sort().reverse();
+  $('chapters').innerHTML=weeks.length
+    ? weeks.slice(0,12).map(w=>'<pre>  '+esc(chapter(w)||'')+'</pre>').join('<hr>')
+    : '<p class="q">no weeks yet.</p>';
 
-  /* the ledger — every number, and the rule that moved it */
-  $('ledger').innerHTML = '<hr><div class="q">every event, and the rule that moved the number</div><ul>' +
-    EV.slice(0, 200).map(e => '<li class="q">' + e.day + '  +' + String(e.xp).padStart(4) + '  ' +
-      (e.cat === 'bonus' ? '🌟' : CATS[e.cat]) + '  ' + esc(e.text) +
-      '  <i>' + e.rule + (e.mult !== 1 ? ' (' + e.base + ' × ' + e.mult + ')' : '') + '</i></li>').join('') +
+  /* rewards */
+  $('shop').innerHTML='<div class="q">'+spendable()+' spendable · '+spent()+' spent · lifetime never drops</div>'+
+    S.shop.map(i=>'<div>'+esc(i.n)+' <span class="q">'+i.c+'</span> '+
+      '<button onclick="redeem(\''+i.id+'\')"'+(spendable()<i.c?' disabled':'')+'>take</button> '+
+      '<button class="q" onclick="delReward(\''+i.id+'\')">×</button></div>').join('');
+  $('vault').innerHTML=S.redeemed.length
+    ?'<div class="q">taken: '+S.redeemed.slice(0,8).map(r=>esc(r.n)+' ('+pretty(r.at)+')').join(', ')+'</div>':'';
+
+  /* the ledger */
+  $('ledger').innerHTML='<hr><div class="q">every event and the rule that produced it</div><ul>'+
+    EV.slice(0,250).map(e=>'<li class="q">'+e.day+'  +'+String(e.xp).padStart(4)+'  '+
+      (STATS[e.stat]?STATS[e.stat].g:'·')+' '+e.stat.padEnd(11)+esc(e.text)+
+      '  <i>'+e.rule+(e.mult!==1?' ('+e.base+' × '+e.mult.toFixed(2).replace(/\.?0+$/,'')+')':'')+'</i></li>').join('')+
     '</ul>';
+
+  $('becoming-edit').innerHTML='<p class="q">becoming: '+esc(S.becoming.line)+
+    ' <button onclick="editBecoming()">change</button></p>';
 }
 
-/* ── auth ────────────────────────────────────────────────────── */
-function init() {
-  const ok = token && repo;
-  $('auth').classList.toggle('hide', !!ok);
-  $('app').classList.toggle('hide', !ok);
-  if (ok) load();
+/* ── auth ─────────────────────────────────────────────────────── */
+function init(){
+  const ok=token&&repo;
+  $('auth').classList.toggle('hide',!!ok);
+  $('app').classList.add('hide'); $('create').classList.add('hide');
+  const sel=$('stat-input');
+  if(sel&&!sel.options.length) sel.innerHTML=DOMAINS.map(s=>
+    '<option value="'+s+'">'+STATS[s].g+' '+s+'</option>').join('');
+  if(ok)load();
 }
-function saveToken() {
-  repo = $('repo-input').value.trim(); token = $('token-input').value.trim();
-  if (!repo || !token) return;
-  localStorage.setItem('gh_repo', repo); localStorage.setItem('gh_token', token);
+function saveToken(){
+  repo=$('repo-input').value.trim(); token=$('token-input').value.trim();
+  if(!repo||!token)return;
+  localStorage.setItem('gh_repo',repo); localStorage.setItem('gh_token',token);
   init();
 }
-function clearToken() {
-  token = repo = '';
-  localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo');
-  init();
+function clearToken(){
+  token=repo=''; localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo'); init();
 }
 
 init();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
