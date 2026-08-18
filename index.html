@@ -1,231 +1,47 @@
 <!DOCTYPE html>
-<html data-skin="plain">
+<html>
 <head>
 <meta charset="utf-8">
 <title>playable</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest.json">
 <style>
-/* ══ two skins ══════════════════════════════════════════════════
-   plain  — the default. a raw save file, but actually designed:
-            hierarchy, air, one accent, follows your system theme.
-   game   — the same numbers wearing colour and motion.
-   structure is identical; only presentation differs. ══════════ */
-
-:root{
-  --bg:#fbfaf7; --raise:#ffffff; --ink:#1b1b19; --dim:#6a6960; --faint:#a5a29a;
-  --line:#e4e0d6; --accent:#8a6a14; --accent-soft:#f0e6cc;
-  --s-vitality:#c2492c; --s-connection:#1f6f9c; --s-prosperity:#8a6a14;
-  --s-wisdom:#4f7a1f;   --s-creativity:#6b4a9c; --s-courage:#a32f4a;
-  --s-discipline:#2c7a72;
-  --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
-  --gap:22px;
-}
-@media (prefers-color-scheme:dark){
-  :root{
-    --bg:#0c0d10; --raise:#131519; --ink:#e7e5de; --dim:#8e8c84; --faint:#5a5852;
-    --line:#212429; --accent:#d9b96b; --accent-soft:#2a2314;
-    --s-vitality:#ff7a5c; --s-connection:#4cc2ff; --s-prosperity:#ffc94d;
-    --s-wisdom:#9fd356;   --s-creativity:#c891ff; --s-courage:#ff6b85;
-    --s-discipline:#7fe0d6;
-  }
-}
-[data-skin="game"]{
-  --bg:#07080d; --raise:#11131c; --ink:#eceaf4; --dim:#9c99ad; --faint:#5f5d72;
-  --line:#232636; --accent:#d9b96b; --accent-soft:#221d10;
-  --s-vitality:#ff7a5c; --s-connection:#4cc2ff; --s-prosperity:#ffc94d;
-  --s-wisdom:#9fd356;   --s-creativity:#c891ff; --s-courage:#ff6b85;
-  --s-discipline:#7fe0d6;
-}
-
-*{box-sizing:border-box}
-html,body{margin:0}
-body{
-  background:var(--bg); color:var(--ink);
-  font-family:var(--mono); font-size:14px; line-height:1.6;
-  padding:26px 18px 80px; max-width:760px; margin:0 auto;
-  -webkit-font-smoothing:antialiased;
-  font-variant-ligatures:none;
-}
-[data-skin="game"] body{
-  background:
-    radial-gradient(900px 480px at 50% -12%, #171b33 0%, transparent 62%),
-    var(--bg);
-}
-
-pre{white-space:pre-wrap;margin:0;font:inherit}
-h1{font-size:15px;margin:0;letter-spacing:.24em;text-transform:uppercase;font-weight:500;color:var(--accent)}
-a{color:var(--accent)}
-hr{border:0;border-top:1px solid var(--line);margin:var(--gap) 0}
-
-/* section captions */
-.cap{
-  font-size:10px; letter-spacing:.2em; text-transform:uppercase;
-  color:var(--faint); margin:0 0 8px;
-}
-
-/* controls */
-button{
-  font:inherit; font-size:13px; cursor:pointer;
-  background:transparent; color:var(--dim);
-  border:1px solid var(--line); border-radius:5px;
-  padding:2px 9px; transition:.14s;
-}
-button:hover:not(:disabled){border-color:var(--accent);color:var(--ink)}
-button:disabled{opacity:.32;cursor:not-allowed}
-button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
-button.bare{border:0;padding:2px 5px;color:var(--faint)}
-button.bare:hover{color:var(--ink)}
-input,select,textarea{
-  font:inherit; background:var(--raise); color:var(--ink);
-  border:1px solid var(--line); border-radius:5px; padding:5px 8px; outline:none;
-}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-input::placeholder{color:var(--faint)}
-
-ul{margin:6px 0 4px;padding:0;list-style:none}
-li{margin:0}
-.d{opacity:.4}
-.q{color:var(--faint);font-size:12.5px}
-.hide{display:none}
-.big{font-size:16px}
-
-/* ── the identity block ─────────────────────────────────────── */
-#who{display:block}
-.title{font-size:19px;letter-spacing:.02em;color:var(--accent);margin-bottom:2px}
-[data-skin="game"] .title{text-shadow:0 0 26px color-mix(in srgb,var(--accent) 45%,transparent)}
-.lvl{color:var(--dim);font-size:13px}
-.becoming{
-  margin-top:14px;padding-left:12px;
-  border-left:2px solid var(--accent-soft);
-}
-.becoming .line{color:var(--ink)}
-.becoming .made{color:var(--faint);font-size:12.5px;margin-top:2px}
-.align{margin-top:6px;color:var(--dim);font-size:13px}
-.align b{color:var(--accent);font-weight:600}
-
-/* ── bars: ascii in plain, drawn in game ───────────────────── */
-.bar{display:inline-block;vertical-align:middle}
-.bar .ascii{white-space:pre}
-.bar .gfx{display:none}
-[data-skin="game"] .bar .ascii{display:none}
-[data-skin="game"] .bar .gfx{
-  display:inline-block;width:132px;height:7px;border-radius:4px;
-  background:var(--line);overflow:hidden;vertical-align:middle;
-}
-[data-skin="game"] .bar .gfx i{
-  display:block;height:100%;border-radius:4px;
-  background:var(--c,var(--accent));
-  transition:width .55s cubic-bezier(.2,.8,.25,1);
-  box-shadow:0 0 12px color-mix(in srgb,var(--c,var(--accent)) 55%,transparent);
-}
-
-/* ── the seven ─────────────────────────────────────────────── */
-.stat{padding:5px 0}
-.stat + .stat{border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-.stat .top{display:flex;align-items:center;gap:9px}
-.stat .nm{min-width:104px;color:var(--c)}
-.stat .lv{color:var(--dim);font-size:12.5px;min-width:44px}
-.stat .pc{color:var(--faint);font-size:12.5px;min-width:34px;text-align:right}
-.stat .mean{color:var(--faint);font-size:12px;padding-left:calc(104px + 9px)}
-.stat.want .nm{font-weight:700}
-.stat.want::before{content:'▸';position:absolute;margin-left:-13px;color:var(--accent)}
-.stat{position:relative}
-@keyframes lvlup{0%{background:transparent}22%{background:var(--accent-soft)}100%{background:transparent}}
-.stat.up{animation:lvlup 1.5s ease-out}
-
-/* ── quests ────────────────────────────────────────────────── */
-.grp{margin-bottom:16px}
-.t{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;margin-left:-6px}
-.t:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
-.t .tx{flex:1;min-width:0;overflow-wrap:anywhere}
-.t .acts{opacity:0;transition:.14s;display:flex;gap:3px}
-.t:hover .acts,.t:focus-within .acts{opacity:1}
-@media(hover:none){.t .acts{opacity:1}}
-.tick{
-  width:19px;height:19px;flex:none;border:1.5px solid var(--line);border-radius:5px;
-  display:grid;place-items:center;font-size:11px;color:transparent;padding:0;
-}
-.tick:hover{border-color:var(--accent)}
-.tick.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
-[data-skin="game"] .tick.on{box-shadow:0 0 14px color-mix(in srgb,var(--accent) 60%,transparent)}
-
-/* ── bosses ────────────────────────────────────────────────── */
-.boss{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;margin-left:-6px}
-.boss:hover{background:color-mix(in srgb,var(--s-courage) 8%,transparent)}
-.boss .age{color:var(--s-courage);font-size:12.5px}
-
-/* ── chapters ──────────────────────────────────────────────── */
-.chapter{
-  border-left:2px solid var(--line); padding:2px 0 2px 14px; margin:0 0 var(--gap);
-  color:var(--dim);
-}
-.chapter b{color:var(--ink);font-weight:600;display:block;margin-bottom:4px;
-  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
-
-/* ── ledger ────────────────────────────────────────────────── */
-.led{display:flex;gap:10px;font-size:12px;color:var(--faint);padding:2px 0}
-.led .xp{color:var(--dim);min-width:46px;text-align:right}
-.led .wh{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.led i{color:var(--faint);opacity:.75}
-
-/* ── toast ─────────────────────────────────────────────────── */
-#toast{
-  position:fixed;right:16px;bottom:16px;z-index:50;
-  background:var(--raise);color:var(--ink);
-  border:1px solid var(--line);border-left:3px solid var(--accent);
-  border-radius:7px;padding:9px 14px;
-  box-shadow:0 12px 32px rgba(0,0,0,.22);
-  animation:rise .26s cubic-bezier(.2,.9,.3,1);
-}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-
-#skinbar{position:fixed;top:14px;right:16px;z-index:40}
-
-@media(max-width:560px){
-  body{padding:18px 14px 70px;font-size:13.5px;--gap:18px}
-  .stat .mean{padding-left:0}
-  .stat .nm{min-width:88px}
-  #skinbar{position:static;margin-bottom:10px}
-}
+body{font-family:system-ui,-apple-system,sans-serif;padding:16px;max-width:760px;margin:0 auto}
+pre{white-space:pre-wrap;font-size:13px}
+li{margin:3px 0}
+.hab{color:#666;font-size:12px}
+.warn{color:#b00}
+.ok{color:#070}
+#toast,#banner{position:fixed;right:12px;bottom:12px;background:#000;color:#fff;padding:8px 12px;border-radius:6px}
+#banner{bottom:56px;background:#070}
 </style>
 </head>
 <body>
 
-<div id="skinbar"><button onclick="flipSkin()" id="skinbtn">skin</button></div>
 <h1>playable</h1>
-<div class="q" id="tag">a save file for your actual life</div>
 
-<div id="auth" class="hide">
-  <p>repo (user/repo):<br><input id="repo-input" placeholder="piyushgyl01/playable" size="30"></p>
-  <p>a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable" target="_blank">github token</a>, repo scope:<br>
-     <input id="token-input" placeholder="ghp_..." size="30"></p>
-  <button onclick="saveToken()">open the save</button>
+<div id="auth" style="display:none">
+  <p>repo (user/repo):</p>
+  <input id="repo-input" placeholder="piyushgyl01/playable">
+  <p>paste a <a href="https://github.com/settings/tokens/new?scopes=repo&description=playable-app" target="_blank">github token</a> (repo scope):</p>
+  <input id="token-input" placeholder="ghp_...">
+  <br><br>
+  <button onclick="saveToken()">save</button>
 </div>
 
-<!-- character creation. the app is meaningless without a destination. -->
-<div id="create" class="hide">
-  <hr>
-  <p class="big">who are you trying to become?</p>
-  <p class="q">one sentence. not a goal — a person. this is the thing every number
-     in here will be measured against, so make it true.</p>
-  <textarea id="c-line" rows="2" style="width:100%;max-width:520px"
-    placeholder="someone who trains, builds real things, and is still close to the people who matter"></textarea>
-  <p class="q">now pick the three that person is made of:</p>
-  <div id="c-stats"></div>
-  <p><button onclick="beginRun()" class="big">begin</button></p>
-</div>
+<div id="app" style="display:none">
+  <pre id="next-move"></pre>
+  <pre id="map"></pre>
+  <pre id="rpg-stats"></pre>
 
-<div id="app" class="hide">
-  <hr><pre id="who"></pre>
-  <hr><pre id="read"></pre>
-  <hr><pre id="day"></pre>
-  <div id="modes"></div><div id="rest"></div>
-
-  <hr><div id="quests"></div>
   <form onsubmit="addTask(event)">
-    <input id="inp" placeholder="what needs doing?" size="22">
-    <select id="stat-input"></select>
+    <input id="inp" placeholder="what needs doing?" autofocus>
+    <input id="hp-input" type="number" min="1" value="1" style="width:56px" title="how many sessions will this take? more than 1 makes it a boss">
+    <select id="cat-input">
+      <option value="health">health</option>
+      <option value="relationships">relationships</option>
+      <option value="wealth">wealth</option>
+    </select>
     <select id="quest-input">
       <option value="daily">daily</option>
       <option value="main" selected>main</option>
@@ -235,778 +51,863 @@ li{margin:0}
     <button type="submit">add</button>
   </form>
 
-  <hr><div id="bosses"></div>
-  <hr><pre id="stats"></pre>
+  <p id="filters">
+    filter:
+    <button data-filter="all" onclick="setFilter('all')">all</button>
+    <button data-filter="health" onclick="setFilter('health')">health</button>
+    <button data-filter="relationships" onclick="setFilter('relationships')">relationships</button>
+    <button data-filter="wealth" onclick="setFilter('wealth')">wealth</button>
+  </p>
 
-  <p><button onclick="tog('arcs-w')">arcs</button>
-     <button onclick="tog('chap')">chapters</button>
-     <button onclick="tog('rew')">rewards</button>
-     <button onclick="tog('ledger')">the ledger</button>
-     <button onclick="tog('cfg')">·</button></p>
+  <div id="list"></div>
 
-  <div id="arcs-w" class="hide">
-    <hr><div id="arcs"></div>
-    <form onsubmit="addArc(event)"><input id="a-name" placeholder="name an arc" size="24">
-      <button type="submit">begin</button></form>
-  </div>
+  <br>
+  <button onclick="toggleMore()" id="more-btn">show options</button>
 
-  <div id="chap" class="hide"><hr><div id="chapters"></div></div>
+  <div id="more" style="display:none">
+    <p>— reward shop —</p>
+    <div id="shop"></div>
+    <form onsubmit="addReward(event)">
+      <input id="r-name" placeholder="a reward you want" size="24">
+      <input id="r-cost" type="number" value="100" min="1" style="width:70px"> xp
+      <button type="submit">add reward</button>
+    </form>
 
-  <div id="rew" class="hide">
-    <hr><div id="shop"></div>
-    <form onsubmit="addReward(event)"><input id="r-name" placeholder="a real reward" size="20">
-      <input id="r-cost" type="number" value="500" min="1" style="width:66px">
-      <button type="submit">add</button></form>
-    <div id="vault"></div>
-  </div>
+    <p>— rewards vault —</p>
+    <ul id="rewards-vault-list"></ul>
 
-  <div id="ledger" class="hide"></div>
+    <p>— habits —</p>
+    <div id="habits"></div>
 
-  <div id="cfg" class="hide">
-    <hr><div id="becoming-edit"></div>
-    <p class="q"><a href="#" onclick="clearToken();return false">change token / repo</a></p>
+    <p>— xp logs —</p>
+    <ul id="xp-logs-list"></ul>
+
+    <p><small><a href="#" onclick="clearToken();return false">change token / repo</a></small></p>
   </div>
 </div>
 
-<p id="status" class="q"></p>
-<div id="toast" class="hide"></div>
+<p id="status"></p>
+<div id="toast" style="display:none"></div>
+<div id="banner" style="display:none"></div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   playable — a persistent character generated by real life.
+/* ─────────────────────────────────────────────────────────────
+   playable — same tasks.json contract as v1.
+   the CLI and the GitHub Actions keep working against this file
+   unchanged; nothing new is written that they can't ignore.
+   ───────────────────────────────────────────────────────────── */
 
-     REAL ACTION → RECORDED EVENT → RULE → PERSISTENT STATE
-
-   deterministic. no model runs. every number is a fold over an
-   event log and can name the rule that produced it.
-
-   tasks.json keeps v1's exact shape and remains the event source,
-   so the `todo` CLI and the GitHub Actions keep working untouched.
-   everything this version adds lives in state.json, which they
-   never read.
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── the seven ──────────────────────────────────────────────────
-   five are domains: they say where an action landed.
-   two are earned: they say something about how you acted, and you
-   cannot tag a task with them — only the rules can award them. */
-const STATS = {
-  vitality:   { g:'💪', d:'domain', m:'evidence you invested in your body' },
-  connection: { g:'🤝', d:'domain', m:'evidence you invested in people' },
-  prosperity: { g:'💰', d:'domain', m:'evidence you invested in what you are building' },
-  wisdom:     { g:'📖', d:'domain', m:'evidence you invested in knowing more' },
-  creativity: { g:'✷',  d:'domain', m:'evidence you made a thing that did not exist' },
-  courage:    { g:'⚔',  d:'earned', m:'evidence you did the thing you were avoiding' },
-  discipline: { g:'⛓',  d:'earned', m:'evidence you kept going after it stopped being novel' }
-};
-const SK = Object.keys(STATS);
-const DOMAINS = SK.filter(k => STATS[k].d === 'domain');
-
-/* how the two earned stats are won. both are computable from
-   timestamps alone — nothing is judged, nothing is guessed. */
-const DEFER_DAYS = 7;      // a task open this long is being avoided
-const RUN_FOR_DISCIPLINE = 3;
-const DISCIPLINE_PER_RUN = 10;
-const DISCIPLINE_PER_CLEAR = 25;
-
-const EFFORT = {
-  min:    { m:0.5, mark:'min',  b:'the two-minute version. it still counts.' },
-  normal: { m:1.0, mark:'',     b:'' },
-  hard:   { m:2.0, mark:'hard', b:'the version that cost you something.' }
-};
-const MODES = {
-  full:     { f:1.00, b:'everything on the board' },
-  normal:   { f:0.60, b:'a real day' },
-  low:      { f:0.30, b:'not much left in the tank' },
-  recovery: { f:0.00, b:'resting is the quest' }
-};
-const PAIR_XP = 25, TRI_XP = 100, REST_XP = 25;
-
-/* v1's category names, kept so old saves migrate cleanly */
-const LEGACY = { health:'vitality', relationships:'connection', wealth:'prosperity' };
-/* first match wins, so the explicit signals go first: "apply to design
-   jobs" is prosperity, not creativity. every guess is overridable
-   per task, and the override is what gets remembered. */
-const GUESS = [
-  [/(job|apply|client|invoice|money|startup|portfolio|interview|r[ée]sum[ée]|cv)/i,'prosperity'],
-  [/(mom|dad|father|mother|friend|family|call|talk|meet|dinner)/i,'connection'],
-  [/(dsa|boot\.?dev|class|read|study|learn|course|book|lecture|full ?stack|java|leetcode)/i,'wisdom'],
-  [/(mograph|design|edit|render|draw|write|animate|music|film|shoot|paint)/i,'creativity'],
-  [/(gym|run|walk|steps|water|protein|sleep|creatine|stretch|heart|clean|bed|meal|eat)/i,'vitality'],
-  [/(work|build|ship|deploy)/i,'prosperity']
-];
+const FILE = 'tasks.json';
+const ARCHIVE_FILE = 'archive.json';
+const CATS = { health: '💪', relationships: '🤝', wealth: '💰' };
+const CAT_KEYS = ['health', 'relationships', 'wealth'];
 
 let repo = localStorage.getItem('gh_repo') || '';
 let token = localStorage.getItem('gh_token') || '';
-let sha = '', stateSha = null;
-let tasks = [], archived = [], S = null, EV = [];
+let sha = '';
+let tasks = [];
+let archivedTasks = [];
+let moreVisible = false;
+let currentFilter = 'all';
 
-const $ = id => document.getElementById(id);
-const status = m => $('status').textContent = m;
-const esc = s => String(s).replace(/[&<>"']/g, c =>
-  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function status(m) { document.getElementById('status').textContent = m; }
 
-/* ── time ─────────────────────────────────────────────────────── */
-const dayStr = d => new Date(d).toISOString().slice(0,10);
-const today = () => dayStr(new Date());
-function addDays(ds,n){const p=ds.split('-').map(Number);
-  const d=new Date(Date.UTC(p[0],p[1]-1,p[2]));d.setUTCDate(d.getUTCDate()+n);
-  return d.toISOString().slice(0,10);}
-const between = (a,b) => Math.round((new Date(b)-new Date(a))/864e5);
-function weekOf(ds){const p=ds.split('-').map(Number);
-  const d=new Date(Date.UTC(p[0],p[1]-1,p[2]));
-  d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
-const MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-const pretty = ds => MON[+ds.split('-')[1]-1]+' '+(+ds.split('-')[2]);
+/* ── XP — identical to v1, so the numbers never jump ────────── */
+function xpForLevel(L) { return Math.floor(100 * Math.pow(L, 1.5)); }
+function getLevel(xp) { let l = 1; while (xp >= xpForLevel(l)) l++; return l; }
 
-/* ── levels ───────────────────────────────────────────────────── */
-const xpForLevel = L => Math.floor(100*Math.pow(L,1.5));
-function getLevel(x){let l=1;while(x>=xpForLevel(l))l++;return l;}
-function lp(x){const l=getLevel(x),p=l>1?xpForLevel(l-1):0,n=xpForLevel(l);
-  return {lvl:l,cur:x-p,req:n-p};}
-function bar(c,m,w){const f=Math.max(0,Math.min(w,Math.floor(c/(m||1)*w)));
-  return '█'.repeat(f)+'░'.repeat(w-f);}
-
-/* one bar, two skins: ascii for plain, a drawn one for game. both are
-   always in the DOM and css decides which is visible. */
-function barHTML(c,m,w,colour){
-  const pct=Math.max(0,Math.min(100,c/(m||1)*100));
-  return '<span class="bar"'+(colour?' style="--c:'+colour+'"':'')+'>'+
-    '<span class="ascii">'+bar(c,m,w)+'</span>'+
-    '<span class="gfx"><i style="width:'+pct.toFixed(1)+'%"></i></span></span>';
-}
-
-let SKIN=localStorage.getItem('playable_skin')||'plain';
-function applySkin(){
-  document.documentElement.setAttribute('data-skin',SKIN);
-  const b=$('skinbtn'); if(b)b.textContent=SKIN==='plain'?'plain':'game';
-}
-function flipSkin(){
-  SKIN=SKIN==='plain'?'game':'plain';
-  localStorage.setItem('playable_skin',SKIN); applySkin();
-}
-
-/* stats that just levelled, so the game skin can flare them once */
-let FLOURISH=new Set();
-
-function baseXP(t){
-  if(t.quest==='daily')return 25;
-  if(t.quest==='main')return 200;
-  if(t.quest==='story')return 100;
-  if(t.quest==='side')return 50;
-  if(t.priority===3)return 500;
-  if(t.priority===2)return 100;
-  if(t.priority===1)return 75;
+function xpFromTask(t) {
+  if (t.quest === 'daily') return (t.completedDates || []).length * 25;
+  if (!t.done) return 0;
+  if (t.quest === 'main') return 200;
+  if (t.quest === 'story') return 100;
+  if (t.quest === 'side') return 50;
+  if (t.priority === 3) return 500;
+  if (t.priority === 2) return 100;
+  if (t.priority === 1) return 75;
   return 50;
 }
-const keyOf = t => (t.addedAt||'')+'|'+(t.text||'');
 
-/* which of the five domains a task belongs to. an explicit tag in
-   state.json wins; otherwise migrate from v1's category, then fall
-   back to reading the text. */
-function statOf(t){
-  const k=keyOf(t);
-  if(S && S.stat && S.stat[k] && STATS[S.stat[k]]) return S.stat[k];
-  const txt=(t.text||'');
-  for(const [re,s] of GUESS) if(re.test(txt)) return s;
-  return LEGACY[t.category] || 'prosperity';
+function getTaskCat(t) {
+  if (t.category) return t.category;
+  const s = (t.text || '').toLowerCase();
+  if (/(mom|dad|friend|family|talk|call|meet)/.test(s)) return 'relationships';
+  if (/(run|gym|walk|breakfast|meds|passport)/.test(s)) return 'health';
+  return 'wealth';
 }
 
-/* ── the event log ─────────────────────────────────────────────── */
-function buildEvents(){
-  const ev=[];
-  const push=(day,at,stat,text,base,mult,rule,kind)=>
-    ev.push({day,at,stat,text,base,mult,xp:Math.round(base*mult),rule,kind});
+function dayStr(d) { return new Date(d).toISOString().slice(0, 10); }
+function today() { return dayStr(new Date()); }
+function addDays(ds, n) {
+  const p = ds.split('-').map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
-  [...tasks,...archived].forEach(t=>{
-    if(t.quest==='reward')return;
-    const st=statOf(t), base=baseXP(t), k=keyOf(t);
-
-    if(t.quest==='daily'){
-      const ds=(t.completedDates||[]).slice().sort();
-      ds.forEach((d,i)=>{
-        const eff=(S.effort||{})[k+'|'+d]||'normal';
-        const m=(EFFORT[eff]||EFFORT.normal).m;
-        push(d,d,st,t.text,base,m,'daily'+(eff!=='normal'?' · '+eff:''),'task');
-        if(eff==='hard') push(d,d,'courage',t.text,base,0.5,'hard version of a daily','earned');
-
-        /* discipline: a run of consecutive days. computable, not judged. */
-        let run=1;
-        for(let j=i-1;j>=0;j--){ if(ds[j]===addDays(ds[j+1],-1)) run++; else break; }
-        if(run>=RUN_FOR_DISCIPLINE)
-          push(d,d,'discipline',t.text,DISCIPLINE_PER_RUN,1,run+' days running','earned');
-      });
-    } else if(t.done){
-      const d=t.completedAt?dayStr(t.completedAt):(t.addedAt?dayStr(t.addedAt):today());
-      const eff=(S.effort||{})[k]||'normal';
-      const m=(EFFORT[eff]||EFFORT.normal).m;
-      push(d,t.completedAt||t.addedAt||d,st,t.text,base,m,t.quest+' quest'+(eff!=='normal'?' · '+eff:''),'task');
-
-      /* courage: the longer a thing sat undone, the more it cost to
-         finally do it. this is the whole point of the stat. */
-      if(t.addedAt&&t.completedAt){
-        const held=between(dayStr(t.addedAt),d);
-        if(held>=DEFER_DAYS){
-          const mult=Math.min(2,held/DEFER_DAYS);
-          push(d,t.completedAt,'courage',t.text,base,mult,
-            'carried '+held+' days before you did it','earned');
-        }
-      }
-      if(eff==='hard') push(d,t.completedAt||d,'courage',t.text,base,0.5,'the hard version','earned');
+/* Which categories were touched on each day — the basis of both the
+   tri-pillar bonus and the new pair bonus. */
+function catsByDate() {
+  const all = [...tasks, ...archivedTasks];
+  const by = {};
+  all.forEach(t => {
+    if (t.quest === 'daily') {
+      (t.completedDates || []).forEach(ds => (by[ds] = by[ds] || new Set()).add(getTaskCat(t)));
+    } else if (t.completedAt) {
+      const ds = dayStr(t.completedAt);
+      (by[ds] = by[ds] || new Set()).add(getTaskCat(t));
     }
   });
-
-  Object.keys(S.days||{}).forEach(d=>{
-    if((S.days[d]||{}).rest) push(d,d,'vitality','rested',REST_XP,1,'rest · recovery day','rest');
-  });
-
-  /* balance bonuses across the five domains */
-  const byDay={};
-  ev.filter(e=>STATS[e.stat]&&STATS[e.stat].d==='domain')
-    .forEach(e=>(byDay[e.day]=byDay[e.day]||new Set()).add(e.stat));
-  Object.keys(byDay).forEach(d=>{
-    const n=byDay[d].size;
-    if(n>=3) push(d,d,'discipline','a broad day',TRI_XP,1,n+' domains in one day','bonus');
-    else if(n===2) push(d,d,'discipline','two domains',PAIR_XP,1,'two domains in one day','bonus');
-  });
-
-  /* discipline for clearing the bar you set */
-  Object.keys(S.days||{}).forEach(d=>{
-    if(dayClearedRaw(d,ev)) push(d,d,'discipline','cleared the day',DISCIPLINE_PER_CLEAR,1,
-      'hit the bar you set','bonus');
-  });
-
-  ev.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
-  return ev;
+  return by;
 }
 
-const statXP = s => EV.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0);
-const totalXP = () => EV.reduce((a,e)=>a+e.xp,0);
+/* v1 paid +100 only at 3/3. Two of three paid nothing, which made a
+   2-pillar day feel like a failure. Pairs now pay +25 on the way up. */
+const PAIR_XP = 25, TRI_XP = 100;
 
-/* ── the day ──────────────────────────────────────────────────── */
-const dailies = () => tasks.filter(t=>t.quest==='daily');
-const doneOn = (t,d) => (t.completedDates||[]).includes(d);
-const clearedCount = d => dailies().filter(t=>doneOn(t,d)).length;
-const modeOf = d => ((S.days||{})[d]||{}).mode||null;
-
-function targetFor(d){
-  const n=dailies().length, m=modeOf(d);
-  if(m==='recovery')return 0;
-  if(!m)return Math.max(1,Math.ceil(n*0.6));
-  return Math.max(1,Math.ceil(n*MODES[m].f));
+function bonusBreakdown() {
+  const by = catsByDate();
+  let triDays = 0, pairDays = 0;
+  Object.keys(by).forEach(ds => {
+    const n = CAT_KEYS.filter(c => by[ds].has(c)).length;
+    if (n >= 3) triDays++;
+    else if (n === 2) pairDays++;
+  });
+  const td = today();
+  const tc = by[td] || new Set();
+  return {
+    triDays, pairDays,
+    bonusXP: triDays * TRI_XP + pairDays * PAIR_XP,
+    todayCats: tc,
+    todayCount: CAT_KEYS.filter(c => tc.has(c)).length
+  };
 }
-function dayClearedRaw(d,ev){
-  const m=modeOf(d);
-  if(m==='recovery')return !!((S.days||{})[d]||{}).rest;
-  if(clearedCount(d)>=targetFor(d))return true;
-  if(!m&&d!==today())return (ev||EV).some(e=>e.day===d&&e.kind==='task');
-  return false;
-}
-const dayCleared = d => dayClearedRaw(d,EV);
 
-function streak(){
-  let d=dayCleared(today())?today():addDays(today(),-1),n=0;
-  while(n<4000&&dayCleared(d)){n++;d=addDays(d,-1);}
+function catXP(cat) {
+  let xp = 0;
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (getTaskCat(t) !== cat) return;
+    if (t.quest === 'daily') xp += (t.completedDates || []).length * 25;
+    else if (t.done) xp += xpFromTask(t);
+  });
+  return xp;
+}
+
+function totalXP() {
+  let xp = 0;
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.quest === 'daily') xp += (t.completedDates || []).length * 25;
+    else if (t.done) xp += xpFromTask(t);
+  });
+  return xp + bonusBreakdown().bonusXP;
+}
+
+/* XP already committed to rewards you've taken. Lifetime XP still counts
+   it — this is only the spendable balance. */
+function spentXP() {
+  return [...tasks, ...archivedTasks]
+    .filter(t => t.quest === 'reward' && t.claimed)
+    .reduce((s, t) => s + (t.cost || 0), 0);
+}
+function availableXP() { return totalXP() - spentXP(); }
+
+function progressBar(cur, max, w) {
+  const f = Math.min(w, Math.floor((cur / max) * w));
+  return '█'.repeat(f) + '░'.repeat(w - f);
+}
+function levelProgress(xp) {
+  const l = getLevel(xp), prev = l > 1 ? xpForLevel(l - 1) : 0, next = xpForLevel(l);
+  return { lvl: l, curLvlXP: xp - prev, reqLvlXP: next - prev };
+}
+
+function calcStreak() {
+  const days = new Set();
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.quest === 'daily') (t.completedDates || []).forEach(d => days.add(d));
+    else if (t.completedAt) days.add(dayStr(t.completedAt));
+  });
+  let streak = 0, d = new Date();
+  while (true) {
+    const ds = dayStr(d);
+    if (days.has(ds)) { streak++; d.setDate(d.getDate() - 1); }
+    else if (streak === 0) {
+      d.setDate(d.getDate() - 1);
+      if (days.has(dayStr(d))) { streak++; d.setDate(d.getDate() - 1); } else break;
+    } else break;
+  }
+  return streak;
+}
+
+function calcStats() {
+  const weekAgo = new Date(Date.now() - 7 * 864e5);
+  let added = 0, completed = 0;
+  [...tasks, ...archivedTasks].forEach(t => {
+    if (t.addedAt && new Date(t.addedAt) >= weekAgo) added++;
+    if (t.quest === 'daily') (t.completedDates || []).forEach(ds => { if (new Date(ds) >= weekAgo) completed++; });
+    else if (t.completedAt && new Date(t.completedAt) >= weekAgo) completed++;
+  });
+  return { added, completed };
+}
+
+/* ── new: per-habit level and streak, derived from completedDates.
+   no new data is stored — this reads what v1 already writes. ──── */
+function habitStreak(t) {
+  const days = new Set(t.completedDates || []);
+  if (!days.size) return 0;
+  let cur = days.has(today()) ? today() : addDays(today(), -1);
+  let n = 0;
+  while (days.has(cur) && n < 3000) { n++; cur = addDays(cur, -1); }
   return n;
 }
+function habitLevel(t) { return getLevel((t.completedDates || []).length * 25); }
 
-/* ── who you are ──────────────────────────────────────────────── */
-const TITLES = {
-  vitality:'The Tempered', connection:'The Kin', prosperity:'The Builder',
-  wisdom:'The Student', creativity:'The Maker',
-  courage:'The Unflinching', discipline:'The Constant'
+/* ── bosses ──────────────────────────────────────────────────
+   a task with hp > 1 is a boss: something too big for one tick.
+   each session lands a hit. it only becomes done:true when its hp
+   is gone, so the CLI and the Actions see an ordinary open task
+   the whole time and the XP table never moves. `hp`/`hits`/`steps`
+   are fields they don't read and will carry through untouched. */
+function isBoss(t) { return (t.hp || 1) > 1 && t.quest !== 'daily'; }
+function bossHits(t) { return Math.min(t.hp || 1, t.hits || 0); }
+function bossLeft(t) { return Math.max(0, (t.hp || 1) - bossHits(t)); }
+
+function hpBar(t) {
+  const hp = t.hp || 1, left = bossLeft(t), w = 10;
+  const f = Math.round(left / hp * w);
+  return '[' + '█'.repeat(f) + '░'.repeat(w - f) + '] ' + left + '/' + hp;
+}
+
+/* steps — a named checklist inside one task, for the things that
+   aren't "more sessions" but "these four specific parts". */
+function stepsOf(t) { return Array.isArray(t.steps) ? t.steps : []; }
+function stepsDone(t) { return stepsOf(t).filter(s => s.done).length; }
+
+function isOverdue(t) { return t.dueDate && !t.done && t.dueDate < today(); }
+function isDueToday(t) { return t.dueDate && !t.done && t.dueDate === today(); }
+
+/* ── daily shuffle — same seeded rotation as v1 ─────────────── */
+function dailySeed() {
+  const d = today(); let h = 0;
+  for (let i = 0; i < d.length; i++) h = ((h << 5) - h + d.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function shuffleDailies(ds) {
+  const seed = dailySeed(), groups = {};
+  ds.forEach(t => (groups[getTaskCat(t)] = groups[getTaskCat(t)] || []).push(t));
+  const out = [];
+  CAT_KEYS.forEach(cat => {
+    const g = groups[cat] || []; let s = seed;
+    for (let i = g.length - 1; i > 0; i--) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      const j = s % (i + 1);
+      [g[i], g[j]] = [g[j], g[i]];
+    }
+    out.push(...g);
+  });
+  return out;
+}
+function isDailyDoneToday(t) { return (t.completedDates || []).includes(today()); }
+
+/* ── the map ─────────────────────────────────────────────────
+   three regions, one per pillar. exploration is breadth, not xp:
+   how many distinct things you've actually done there and how many
+   habits have taken root — so grinding one task forever does not
+   fill the bar, and a neglected region reads as neglected. */
+const REGIONS = {
+  health:        { name: 'the near country', glyph: '💪' },
+  relationships: { name: 'the long shore',   glyph: '🤝' },
+  wealth:        { name: 'the high road',    glyph: '💰' }
 };
 
-function identity(){
-  const tot=SK.reduce((a,s)=>a+statXP(s),0)||1;
-  const share={}; SK.forEach(s=>share[s]=Math.round(statXP(s)/tot*100));
-  const rank=SK.slice().sort((a,b)=>share[b]-share[a]);
-  const top=rank[0], bot=DOMAINS.slice().sort((a,b)=>share[a]-share[b])[0];
-  return {share,top,bot,title:TITLES[top]||'The Player',rank};
+function exploration(cat) {
+  const all = [...tasks, ...archivedTasks].filter(t => getTaskCat(t) === cat && t.quest !== 'reward');
+  const distinct = new Set(all.filter(t => t.done || (t.completedDates || []).length)
+    .map(t => (t.text || '').toLowerCase().trim()));
+  const habits = tasks.filter(t => t.quest === 'daily' && getTaskCat(t) === cat && habitLevel(t) >= 2).length;
+  const bosses = all.filter(t => t.done && (t.hp || 1) > 1).length;
+  return Math.min(100, distinct.size * 4 + habits * 9 + bosses * 8);
 }
 
-/* how much of your evidence points at the person you said you're
-   becoming. this is the number the whole app exists to produce. */
-function alignment(days){
-  const want=(S.becoming&&S.becoming.priorities)||[];
-  if(!want.length)return null;
-  const from=days?addDays(today(),-days):null;
-  const rel=EV.filter(e=>!from||e.day>=from);
-  const tot=rel.reduce((a,e)=>a+e.xp,0)||1;
-  const on=rel.filter(e=>want.includes(e.stat)).reduce((a,e)=>a+e.xp,0);
-  return {pct:Math.round(on/tot*100),want,total:tot};
-}
-
-/* ── bosses ───────────────────────────────────────────────────────
-   you do not create a boss. a boss is what a task becomes when you
-   keep not doing it. */
-function bosses(){
-  const td=today();
-  return tasks.map((t,i)=>({t,i}))
-    .filter(({t})=>t.quest!=='daily'&&t.quest!=='reward'&&!t.done&&t.addedAt)
-    .map(({t,i})=>({t,i,held:between(dayStr(t.addedAt),td)}))
-    .filter(x=>x.held>=DEFER_DAYS)
-    .sort((a,b)=>b.held-a.held);
-}
-
-/* ── the read ─────────────────────────────────────────────────── */
-function neglectDays(stat){
-  const days=[...new Set(EV.map(e=>e.day))].sort();
-  if(!days.length)return 0;
-  const run={}; SK.forEach(s=>run[s]=0);
-  const hist=[];
-  days.forEach(d=>{
-    EV.filter(e=>e.day===d).forEach(e=>{if(run[e.stat]!==undefined)run[e.stat]+=e.xp;});
-    const tot=SK.reduce((a,s)=>a+run[s],0)||1;
-    hist.push({d,pct:run[stat]/tot*100});
+function renderMap() {
+  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
+  let o = '── the map ──────────────────────────────────\n';
+  CAT_KEYS.forEach(c => {
+    const r = REGIONS[c], xp = catXP(c), share = Math.round(xp / total * 100);
+    const ex = exploration(c);
+    const open = tasks.filter(t => getTaskCat(t) === c && !t.done && t.quest !== 'daily' && t.quest !== 'reward');
+    const bosses = open.filter(isBoss).length;
+    o += r.glyph + ' ' + c.toUpperCase() + ' — ' + r.name + '  lvl ' + getLevel(xp) + '\n';
+    o += '   [' + progressBar(ex, 100, 10) + '] ' + ex + '% explored · ' +
+         open.length + ' open' + (bosses ? ' · ' + bosses + ' boss' + (bosses > 1 ? 'es' : '') : '') + '\n';
+    o += '   ' + (share < 15 ? '⚠ neglected — ' + share + '% of your effort'
+                             : share > 60 ? 'dominant — ' + share + '% of your effort'
+                             : 'steady — ' + share + '% of your effort') + '\n';
   });
-  let n=0;
-  for(let i=hist.length-1;i>=0;i--){if(hist[i].pct<10)n++;else break;}
-  return n?Math.max(n,between(hist[hist.length-n].d,today())):0;
+  document.getElementById('map').textContent = o;
 }
 
-function read(){
-  const L=[],td=today(),n=dailies().length;
-  const done=clearedCount(td),tgt=targetFor(td),m=modeOf(td);
+/* ── what the world wants from you next ──────────────────────
+   an open world is only useful if it tells you where to go. this
+   reads the same data the stats block does and answers one
+   question: what is the highest-value thing to do right now. */
+function nextMove() {
+  const b = bonusBreakdown();
+  const open = tasks.filter(t => !t.done && t.quest !== 'reward' && t.quest !== 'daily');
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const undone = dailies.filter(t => !isDailyDoneToday(t));
 
-  /* the day, judged against the bar you set — never against 100% */
-  if(!n) L.push('no dailies yet. add a few and this fills in.');
-  else if(m==='recovery')
-    L.push((S.days[td]||{}).rest ? 'recovery day, and you took it. that is a cleared day.'
-      : 'recovery day. resting is the quest — mark it once you have.');
-  else if(done>=tgt&&tgt>0) L.push('day cleared — '+done+' of '+n+', you needed '+tgt+'.');
-  else if(done===0) L.push('nothing yet today. '+tgt+' clears it.');
-  else L.push(done+' of '+n+'. '+(tgt-done)+' more clears the day.');
+  const od = open.filter(isOverdue).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  if (od.length) return ['⚠', 'overdue — ' + od[0].text + ' (due ' + od[0].dueDate + ')'];
 
-  /* against the person you said you were becoming */
-  const a30=alignment(30);
-  if(a30&&S.becoming.line){
-    L.push('you said you are becoming '+S.becoming.line.replace(/\.$/,'')+'.');
-    L.push('  the last 30 days say '+a30.pct+'% of your evidence points there.');
+  const due = open.filter(isDueToday);
+  if (due.length) return ['📢', 'due today — ' + due[0].text];
+
+  const nearlyDead = open.filter(t => isBoss(t) && bossLeft(t) === 1);
+  if (nearlyDead.length) return ['⚔', 'one session left — ' + nearlyDead[0].text];
+
+  if (b.todayCount === 2) {
+    const missing = CAT_KEYS.find(c => !b.todayCats.has(c));
+    const pick = undone.find(t => getTaskCat(t) === missing) || open.find(t => getTaskCat(t) === missing);
+    return ['⭐', 'one ' + missing + ' task closes tri-pillar (+' + TRI_XP + ') — ' +
+      (pick ? pick.text : 'anything in ' + missing)];
   }
 
-  const id=identity();
-  const led=id.rank.filter(s=>id.share[s]>0)[0];
-  if(led&&id.share[led]>=45)
-    L.push(led+' is carrying this run — '+id.share[led]+'% of everything you have done.');
-
-  DOMAINS.forEach(s=>{const k=neglectDays(s);
-    if(k>=5) L.push(s+' has been under 10% for '+k+' days.');});
-
-  /* what is sitting on you */
-  const b=bosses();
-  if(b.length) L.push(b.length+' thing'+(b.length>1?'s':'')+' you keep not doing — the oldest is '+
-    b[0].held+' days old. finishing it is worth courage.');
-
-  const last=[...new Set(EV.filter(e=>e.kind==='task').map(e=>e.day))].sort().pop();
-  const idle=last?between(last,td):0;
-  if(idle>=2) L.push('you have not played in '+idle+' days. the save is where you left it.');
-
-  const wk=w=>EV.filter(e=>e.kind==='task'&&weekOf(e.day)===w).length;
-  const tw=wk(weekOf(td)),lw=wk(weekOf(addDays(td,-7)));
-  if(tw||lw) L.push('this week '+tw+', last week '+lw+' — '+(tw>lw?'climbing.':tw<lw?'slowing.':'level.'));
-
-  const st=streak();
-  if(st>=2) L.push(st+' days running where you hit the bar you set.');
-  return L;
-}
-
-/* ── chapters: the week as prose, not a stat dump ─────────────── */
-function chapter(w){
-  const evs=EV.filter(e=>weekOf(e.day)===w);
-  if(!evs.length)return null;
-  const days=[...new Set(evs.filter(e=>e.kind==='task').map(e=>e.day))];
-  const by={}; SK.forEach(s=>by[s]=evs.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0));
-  const cleared=days.filter(dayCleared).length;
-  const L=[];
-
-  L.push('— week of '+pretty(w)+' —');
-
-  const cour=evs.filter(e=>e.stat==='courage');
-  if(cour.length){
-    const worst=cour.slice().sort((a,b)=>b.xp-a.xp)[0];
-    L.push('you gained '+by.courage+' courage. '+
-      (/carried/.test(worst.rule)
-        ? 'you finally did "'+worst.text+'" after '+worst.rule.match(/\d+/)[0]+' days of not doing it.'
-        : 'you took the hard version of "'+worst.text+'".'));
+  const total = CAT_KEYS.reduce((s, c) => s + catXP(c), 0) || 1;
+  const weak = CAT_KEYS.filter(c => catXP(c) / total * 100 < 15)
+    .sort((a, b) => catXP(a) - catXP(b))[0];
+  if (weak) {
+    const pick = undone.find(t => getTaskCat(t) === weak) || open.find(t => getTaskCat(t) === weak);
+    if (pick) return [REGIONS[weak].glyph, weak + ' is failing at ' +
+      Math.round(catXP(weak) / total * 100) + '% — ' + pick.text];
   }
-  if(by.discipline){
-    L.push('discipline held — '+cleared+' of '+days.length+' days cleared the bar you set.');
-  }
-  const dom=DOMAINS.slice().sort((a,b)=>by[b]-by[a])[0];
-  if(by[dom]) L.push(dom+' led the week.');
-  const rest=evs.filter(e=>e.kind==='rest').length;
-  if(rest) L.push(rest+' recovery day'+(rest>1?'s':'')+' taken, and they counted.');
 
-  const want=(S.becoming&&S.becoming.priorities)||[];
-  if(want.length){
-    const tot=evs.reduce((a,e)=>a+e.xp,0)||1;
-    const on=evs.filter(e=>want.includes(e.stat)).reduce((a,e)=>a+e.xp,0);
-    L.push(Math.round(on/tot*100)+'% of the week pointed at who you said you are becoming.');
-  }
-  const quiet=DOMAINS.filter(s=>!by[s]);
-  if(quiet.length) L.push('nothing at all in '+quiet.join(', ')+'.');
-  return L.join('\n  ');
+  const risk = dailies.filter(t => habitStreak(t) >= 3 && !isDailyDoneToday(t))
+    .sort((a, b) => habitStreak(b) - habitStreak(a))[0];
+  if (risk) return ['🔥', habitStreak(risk) + '-day streak at risk — ' + risk.text];
+
+  if (undone.length) return ['·', undone.length + ' dailies left — ' + undone[0].text];
+  const boss = open.filter(isBoss)[0];
+  if (boss) return ['⚔', 'chip at ' + boss.text + ' ' + hpBar(boss)];
+  if (open.length) return ['·', open[0].text];
+  return ['✓', 'everything on the board is clear'];
 }
 
-/* ── github ───────────────────────────────────────────────────── */
-const H=()=>({Authorization:'token '+token,'Content-Type':'application/json'});
-const dec=c=>JSON.parse(decodeURIComponent(escape(atob(c.replace(/\n/g,'')))));
-const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o,null,2)+'\n')));
-
-async function getFile(f){
-  const r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+f,{headers:H()});
-  if(r.status===404)return{data:null,sha:null};
-  if(!r.ok)throw new Error(f+': '+r.status);
-  const j=await r.json(); return{data:dec(j.content),sha:j.sha};
-}
-async function putFile(f,obj,s,msg){
-  const mk=x=>{const b={message:msg,content:enc(obj)};if(x)b.sha=x;return JSON.stringify(b);};
-  let r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+f,
-    {method:'PUT',headers:H(),body:mk(s)});
-  if(r.status===409||r.status===422){
-    const cur=await getFile(f);
-    r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+f,
-      {method:'PUT',headers:H(),body:mk(cur.sha)});
-  }
-  if(!r.ok)throw new Error(f+' save: '+r.status);
-  return (await r.json()).content.sha;
+function renderNextMove() {
+  const [glyph, text] = nextMove();
+  document.getElementById('next-move').textContent = '▶ next: ' + glyph + ' ' + text;
 }
 
-const freshState=()=>({v:2,becoming:null,stat:{},effort:{},days:{},arcs:[],redeemed:[],
-  shop:[{id:'r1',n:'an hour of anything, guilt-free',c:300},
-        {id:'r2',n:'takeout, no argument',c:800},
-        {id:'r3',n:'a whole day off',c:3000}]});
+/* ── stats block ────────────────────────────────────────────── */
+function renderRPGStats() {
+  const total = totalXP(), b = bonusBreakdown();
+  const h = catXP('health'), r = catXP('relationships'), w = catXP('wealth');
+  const sum = (h + r + w) || 1;
+  const hP = Math.round(h / sum * 100), rP = Math.round(r / sum * 100), wP = Math.max(0, 100 - hP - rP);
 
-function backfill(l){l.forEach(t=>{
-  if(t.priority===undefined)t.priority=0;
-  if(t.dueDate===undefined)t.dueDate=null;
-  if(t.category===undefined)t.category='health';
-  if(t.quest===undefined)t.quest='main';});return l;}
+  const p = levelProgress(total), hp = levelProgress(h), rp = levelProgress(r), wp = levelProgress(w);
 
-async function load(){
-  status('opening the save...');
-  try{
-    const a=await getFile('tasks.json'); tasks=backfill(a.data||[]); sha=a.sha;
-    try{const b=await getFile('archive.json');archived=backfill(b.data||[]);}catch(e){archived=[];}
-    try{const c=await getFile('state.json');S=c.data||freshState();stateSha=c.sha;}
-    catch(e){S=freshState();stateSha=null;}
-    S.v=2; S.stat=S.stat||{}; S.effort=S.effort||{}; S.days=S.days||{};
-    S.arcs=S.arcs||[]; S.shop=S.shop||[]; S.redeemed=S.redeemed||[];
-    EV=buildEvents();
-    if(!S.becoming){showCreate();}else{render();}
-    status('');
-  }catch(e){status('error: '+e.message);}
+  let o = '⚔️ player lvl ' + p.lvl + '  (' + p.curLvlXP + ' / ' + p.reqLvlXP + ' xp · ' + total + ' lifetime xp)\n';
+  o += '  [' + progressBar(p.curLvlXP, p.reqLvlXP, 20) + ']\n\n';
+  o += '💪 health        lvl ' + hp.lvl + '  [' + progressBar(hp.curLvlXP, hp.reqLvlXP, 12) + ']  ' + hp.curLvlXP + ' / ' + hp.reqLvlXP + ' xp\n';
+  o += '🤝 relationships lvl ' + rp.lvl + '  [' + progressBar(rp.curLvlXP, rp.reqLvlXP, 12) + ']  ' + rp.curLvlXP + ' / ' + rp.reqLvlXP + ' xp\n';
+  o += '💰 wealth        lvl ' + wp.lvl + '  [' + progressBar(wp.curLvlXP, wp.reqLvlXP, 12) + ']  ' + wp.curLvlXP + ' / ' + wp.reqLvlXP + ' xp\n\n';
+
+  o += 'balance:\n';
+  o += '  💪 health ' + hP + '%' + (hP < 15 ? ' (low)' : '') + ' [' + progressBar(hP, 100, 8) + ']\n';
+  o += '  🤝 rel    ' + rP + '%' + (rP < 15 ? ' (low)' : '') + ' [' + progressBar(rP, 100, 8) + ']\n';
+  o += '  💰 wealth ' + wP + '%' + (wP < 15 ? ' (low)' : '') + ' [' + progressBar(wP, 100, 8) + ']\n';
+
+  const tc = b.todayCats;
+  const box = c => tc.has(c) ? '■' : '□';
+  o += 'tri-pillar [' + box('health') + ' ' + box('relationships') + ' ' + box('wealth') + '] ';
+  if (b.todayCount >= 3)      o += '3/3 active today (+' + TRI_XP + ' xp bonus)\n';
+  else if (b.todayCount === 2) o += '2/3 — pair bonus live (+' + PAIR_XP + '), +' + TRI_XP + ' at 3/3\n';
+  else                         o += b.todayCount + '/3 complete (+' + PAIR_XP + ' at 2/3, +' + TRI_XP + ' at 3/3)\n';
+
+  const streak = calcStreak();
+  if (streak > 0) o += '🔥 ' + streak + ' day streak\n';
+  const s = calcStats();
+  o += 'this week: ' + s.added + ' added, ' + s.completed + ' completed\n';
+
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const doneD = dailies.filter(isDailyDoneToday).length;
+  if (dailies.length) o += 'dailies today: ' + doneD + '/' + dailies.length + ' [' + progressBar(doneD, dailies.length, 12) + ']\n';
+
+  o += 'xp to spend: ' + availableXP() + '  (' + spentXP() + ' spent on rewards)';
+
+  document.getElementById('rpg-stats').textContent = o;
 }
 
-let busy=false;
-async function persist(withTasks){
-  if(busy)return; busy=true; status('saving...');
-  try{
-    if(withTasks) sha=await putFile('tasks.json',tasks,sha,'update tasks');
-    stateSha=await putFile('state.json',S,stateSha,'update state');
-    status('saved'); setTimeout(()=>status(''),900);
-  }catch(e){status('error: '+e.message+' — nothing lost, try again');}
-  busy=false;
+/* ── rewards — same reward-task shape v1 already writes, so the
+   anime pass keeps working and the CLI still sees them ───────── */
+function shopItems() {
+  try {
+    const s = JSON.parse(localStorage.getItem('playable_shop'));
+    if (Array.isArray(s) && s.length) return s;
+  } catch (e) {}
+  return [{ id: 'anime_pass', name: '🍿 1 hour anime pass', cost: 0, daily: true }];
 }
+function saveShop(items) { localStorage.setItem('playable_shop', JSON.stringify(items)); }
 
-/* ── character creation ───────────────────────────────────────── */
-function showCreate(){
-  $('app').classList.add('hide'); $('create').classList.remove('hide');
-  $('c-stats').innerHTML=SK.map(s=>
-    '<label style="display:inline-block;margin:2px 10px 2px 0">'+
-    '<input type="checkbox" value="'+s+'"> '+STATS[s].g+' '+s+
-    ' <span class="q">'+STATS[s].m.replace('evidence you ','')+'</span></label>').join('<br>');
-}
-async function beginRun(){
-  const line=$('c-line').value.trim();
-  const picked=[...$('c-stats').querySelectorAll('input:checked')].map(x=>x.value);
-  if(!line){alert('write the sentence. it is the whole point.');return;}
-  if(picked.length!==3){alert('pick exactly three.');return;}
-  S.becoming={line,priorities:picked,since:today()};
-  $('create').classList.add('hide'); $('app').classList.remove('hide');
-  render(); await persist(false);
-}
-
-/* ── actions ──────────────────────────────────────────────────── */
-function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hide');
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add('hide'),2400);}
-
-async function tick(i,eff){
-  const t=tasks[i],td=today();
-  const before={}; SK.forEach(s=>before[s]=getLevel(statXP(s)));
-  const bp=getLevel(totalXP()), wasClear=dayCleared(td);
-  const k=keyOf(t);
-
-  if(t.quest==='daily'){
-    t.completedDates=t.completedDates||[];
-    if(!t.completedDates.includes(td))t.completedDates.push(td);
-    if(eff&&eff!=='normal')S.effort[k+'|'+td]=eff;
-  }else{
-    t.done=true; t.completedAt=new Date().toISOString();
-    if(eff&&eff!=='normal')S.effort[k]=eff;
-  }
-  const prev=EV; EV=buildEvents();
-  const gained={}; SK.forEach(s=>{
-    const g=statXP(s)-prev.filter(e=>e.stat===s).reduce((a,e)=>a+e.xp,0);
-    if(g>0)gained[s]=g;});
-  toast(Object.keys(gained).map(s=>'+'+gained[s]+' '+s).join('  '));
-  SK.forEach(s=>{if(getLevel(statXP(s))>before[s]){FLOURISH.add(s);toast(s+' → lvl '+getLevel(statXP(s)));}});
-  if(getLevel(totalXP())>bp)toast('player → lvl '+getLevel(totalXP()));
-  if(!wasClear&&dayCleared(td))toast('day cleared.');
-  render(); await persist(true);
-}
-
-async function untick(i){
-  const t=tasks[i],td=today(),k=keyOf(t);
-  if(t.quest==='daily'){t.completedDates=(t.completedDates||[]).filter(d=>d!==td);
-    delete S.effort[k+'|'+td];}
-  else{t.done=false;t.completedAt=null;delete S.effort[k];}
-  EV=buildEvents(); render(); await persist(true);
-}
-
-async function setMode(m){
-  const td=today(); S.days[td]=S.days[td]||{};
-  S.days[td].mode=S.days[td].mode===m?null:m;
-  if(S.days[td].mode!=='recovery')delete S.days[td].rest;
-  EV=buildEvents(); render(); await persist(false);
-}
-async function markRest(){
-  const td=today(); S.days[td]=S.days[td]||{};
-  S.days[td].rest=!S.days[td].rest;
-  EV=buildEvents(); if(S.days[td].rest)toast('rest counted. +'+REST_XP+' vitality');
-  render(); await persist(false);
-}
-async function retag(i){
-  const t=tasks[i];
-  const s=prompt('which domain does "'+t.text+'" belong to?\n'+DOMAINS.join(' / '),statOf(t));
-  if(!s||!DOMAINS.includes(s.trim()))return;
-  S.stat[keyOf(t)]=s.trim(); EV=buildEvents(); render(); await persist(false);
-}
-
-async function addTask(e){
-  e.preventDefault();
-  const v=$('inp').value.trim(); if(!v)return;
-  const q=$('quest-input').value, st=$('stat-input').value;
-  const t={text:v,quest:q,done:false,addedAt:new Date().toISOString(),completedAt:null,
-    priority:0,dueDate:null,
-    category:Object.keys(LEGACY).find(k=>LEGACY[k]===st)||'wealth'};
-  if(q==='daily')t.completedDates=[];
-  tasks.push(t); S.stat[keyOf(t)]=st; $('inp').value='';
-  EV=buildEvents(); render(); await persist(true);
-}
-async function delTask(i){
-  if(!confirm('remove "'+tasks[i].text+'"?'))return;
-  tasks.splice(i,1); EV=buildEvents(); render(); await persist(true);
-}
-
-async function addArc(e){
-  e.preventDefault(); const n=$('a-name').value.trim(); if(!n)return;
-  S.arcs.push({id:'a'+Date.now().toString(36),n,started:today(),steps:[],done:false});
-  $('a-name').value=''; render(); await persist(false);
-}
-async function arcStep(id){
-  const a=S.arcs.find(x=>x.id===id); if(!a)return;
-  const s=prompt('add a stage to "'+a.n+'":'); if(!s||!s.trim())return;
-  a.steps.push({t:s.trim(),d:false}); render(); await persist(false);
-}
-async function arcTick(id,i){
-  const a=S.arcs.find(x=>x.id===id); if(!a)return;
-  a.steps[i].d=!a.steps[i].d;
-  const was=a.done; a.done=a.steps.length>0&&a.steps.every(s=>s.d);
-  if(a.done&&!was)toast('arc complete — '+a.n);
-  render(); await persist(false);
-}
-async function delArc(id){
-  if(!confirm('drop this arc?'))return;
-  S.arcs=S.arcs.filter(x=>x.id!==id); render(); await persist(false);
-}
-
-const spent=()=>S.redeemed.reduce((a,r)=>a+r.c,0);
-const spendable=()=>totalXP()-spent();
-async function redeem(id){
-  const it=S.shop.find(x=>x.id===id); if(!it||spendable()<it.c)return;
-  S.redeemed.unshift({n:it.n,c:it.c,at:today()});
-  toast('take it. '+it.n); render(); await persist(false);
-}
-async function addReward(e){
-  e.preventDefault();
-  const n=$('r-name').value.trim(),c=parseInt($('r-cost').value,10);
-  if(!n||!(c>0))return;
-  S.shop.push({id:'r'+Date.now().toString(36),n,c}); $('r-name').value='';
-  render(); await persist(false);
-}
-async function delReward(id){S.shop=S.shop.filter(x=>x.id!==id);render();await persist(false);}
-async function editBecoming(){
-  const line=prompt('who are you trying to become?',S.becoming.line);
-  if(line&&line.trim())S.becoming.line=line.trim();
-  const p=prompt('the three stats that person is made of, comma separated:\n'+SK.join(' / '),
-    S.becoming.priorities.join(', '));
-  if(p){const a=p.split(',').map(x=>x.trim()).filter(x=>SK.includes(x));
-    if(a.length===3)S.becoming.priorities=a;}
-  render(); await persist(false);
-}
-function tog(id){$(id).classList.toggle('hide');}
-
-/* ── render ───────────────────────────────────────────────────── */
-function render(){
-  EV=buildEvents();
-  const td=today(),id=identity(),p=lp(totalXP()),a30=alignment(30),aAll=alignment(null);
-
-  $('who').innerHTML =
-    '<div class="title">'+id.title+'</div>'+
-    '<div class="lvl">player lvl '+p.lvl+' &nbsp; '+barHTML(p.cur,p.req,26)+
-      ' &nbsp; '+p.cur+'/'+p.req+' to '+(p.lvl+1)+' &nbsp;·&nbsp; '+totalXP()+' lifetime</div>'+
-    '<div class="becoming"><div class="line">'+esc(S.becoming.line)+'</div>'+
-      '<div class="made">made of '+S.becoming.priorities.map(x=>STATS[x].g+' '+x).join(' · ')+'</div>'+
-      '<div class="align"><b>'+(a30?a30.pct:0)+'%</b> of the last 30 days points there'+
-        (aAll?' <span class="q">· '+aAll.pct+'% all time</span>':'')+'</div></div>';
-
-  $('read').innerHTML='<div class="cap">the read</div>'+
-    read().map(l=>esc(l)).join('<br>');
-
-  const n=dailies().length,done=clearedCount(td),tgt=targetFor(td),m=modeOf(td);
-  $('day').innerHTML='<div class="cap">today · '+(m?m+' day':'undeclared')+'</div>'+
-    (m==='recovery'?'':'<div>'+done+'/'+tgt+' to clear &nbsp;'+
-      barHTML(done,tgt||1,16,'var(--accent)')+'</div>')+
-    (dayCleared(td)?'<div style="color:var(--accent)">✓ cleared</div>':'')+
-    '<div class="q">'+streak()+' day streak — days you hit the bar you set, not days you were perfect</div>';
-
-  $('modes').innerHTML=Object.keys(MODES).map(k=>
-    '<button class="'+(m===k?'on':'')+'" onclick="setMode(\''+k+'\')" title="'+MODES[k].b+'">'+
-    k+'</button>').join(' ')+' <span class="q">'+(m?MODES[m].b:'declare the day and the bar moves to meet you')+'</span>';
-  $('rest').innerHTML=m==='recovery'
-    ? '<p><button onclick="markRest()">'+((S.days[td]||{}).rest?'✓ rested':'mark rest')+
-      '</button> <span class="q">rest is play, not its absence. +'+REST_XP+' vitality.</span></p>':'';
-
-  /* quests */
-  let h='';
-  const grp=(title,list,isDaily)=>{
-    if(!list.length)return;
-    h+='<div class="grp"><div class="cap">'+title+'</div><ul>';
-    list.forEach(({t,i})=>{
-      const d=isDaily?doneOn(t,td):t.done, st=statOf(t);
-      const eff=isDaily?(S.effort[keyOf(t)+'|'+td]||''):(S.effort[keyOf(t)]||'');
-      h+='<li class="t '+(d?'d':'')+'">';
-      h+= d ? '<button class="tick on" onclick="untick('+i+')">✓</button>'+
-              '<span style="color:var(--s-'+st+')">'+STATS[st].g+'</span>'+
-              '<span class="tx"><s>'+esc(t.text)+'</s>'+
-              (eff&&eff!=='normal'?' <span class="q">'+eff+'</span>':'')+'</span>'
-            : '<button class="tick" onclick="tick('+i+',\'normal\')">✓</button>'+
-              '<span style="color:var(--s-'+st+')">'+STATS[st].g+'</span>'+
-              '<span class="tx">'+esc(t.text)+'</span>'+
-              '<span class="acts">'+
-              '<button class="bare" onclick="tick('+i+',\'min\')" title="'+EFFORT.min.b+'">min</button>'+
-              '<button class="bare" onclick="tick('+i+',\'hard\')" title="'+EFFORT.hard.b+'">hard</button></span>';
-      h+='<span class="acts">'+
-         '<button class="bare" onclick="retag('+i+')" title="change domain">'+st.slice(0,3)+'</button>'+
-         '<button class="bare" onclick="delTask('+i+')">×</button></span></li>';
-    });
-    h+='</ul></div>';
+function animeStatus() {
+  const dailies = tasks.filter(t => t.quest === 'daily');
+  const doneToday = dailies.filter(isDailyDoneToday);
+  return {
+    total: dailies.length,
+    done: doneToday.length,
+    allDone: dailies.length > 0 && doneToday.length === dailies.length,
+    claimed: [...tasks, ...archivedTasks].some(t =>
+      t.quest === 'reward' && t.rewardType === 'anime_pass' && t.rewardDate === today() && t.claimed)
   };
-  const idx=q=>tasks.map((t,i)=>({t,i})).filter(x=>x.t.quest===q);
-  grp('daily · '+done+'/'+n,idx('daily'),true);
-  grp('main',idx('main').filter(x=>!x.t.done),false);
-  grp('story',idx('story').filter(x=>!x.t.done),false);
-  grp('side',idx('side').filter(x=>!x.t.done),false);
-  $('quests').innerHTML=h||'<p class="q">nothing on the board.</p>';
+}
 
-  /* bosses — what a task becomes when you keep not doing it */
-  const bs=bosses();
-  $('bosses').innerHTML = bs.length
-    ? '<div class="cap">bosses · what a task becomes when you keep not doing it</div><ul>'+
-      bs.map(({t,i,held})=>{
-        const mult=Math.min(2,held/DEFER_DAYS);
-        return '<li class="boss"><button class="tick" onclick="tick('+i+',\'normal\')">✓</button>'+
-          '<span style="color:var(--s-courage)">⚔</span>'+
-          '<span class="tx">'+esc(t.text)+'</span>'+
-          '<span class="age">'+held+'d · +'+Math.round(baseXP(t)*mult)+' courage</span>'+
-          '<span class="acts"><button class="bare" onclick="tick('+i+',\'hard\')">hard</button></span></li>';
-      }).join('')+'</ul>'
-    : '<div class="q">no bosses. nothing has been sitting longer than '+DEFER_DAYS+' days.</div>';
+async function claimAnimePass() {
+  const st = animeStatus();
+  if (!st.allDone || st.claimed) return;
+  tasks.push({
+    text: '🍿 1 hour anime pass (' + today() + ')',
+    quest: 'reward', rewardType: 'anime_pass', rewardDate: today(),
+    claimed: true, claimedAt: new Date().toISOString(),
+    done: true, addedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+    priority: 0, dueDate: null, category: 'health', cost: 0
+  });
+  banner('🍿 1 HOUR ANIME PASS CLAIMED — enjoy your show');
+  render(); await saveTasks();
+}
 
-  /* the seven */
-  $('stats').innerHTML='<div class="cap">the seven</div>'+SK.map(x=>{
-    const q=lp(statXP(x)), want=S.becoming.priorities.includes(x);
-    const col='var(--s-'+x+')';
-    return '<div class="stat'+(want?' want':'')+(FLOURISH.has(x)?' up':'')+'" style="--c:'+col+'">'+
-      '<div class="top">'+
-        '<span class="nm">'+STATS[x].g+' '+x+'</span>'+
-        '<span class="lv">lvl '+q.lvl+'</span>'+
-        barHTML(q.cur,q.req,14,col)+
-        '<span class="pc">'+id.share[x]+'%</span>'+
-      '</div><div class="mean">'+STATS[x].m+'</div></div>';
+async function buyReward(id) {
+  const item = shopItems().find(i => i.id === id);
+  if (!item || availableXP() < item.cost) return;
+  tasks.push({
+    text: item.name + ' (' + today() + ')',
+    quest: 'reward', rewardType: item.id, rewardDate: today(),
+    claimed: true, claimedAt: new Date().toISOString(), cost: item.cost,
+    done: true, addedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+    priority: 0, dueDate: null, category: 'health'
+  });
+  banner('redeemed — ' + item.name);
+  render(); await saveTasks();
+}
+
+function addReward(e) {
+  e.preventDefault();
+  const n = document.getElementById('r-name').value.trim();
+  const c = parseInt(document.getElementById('r-cost').value, 10);
+  if (!n || !(c > 0)) return;
+  saveShop([...shopItems(), { id: 'r' + Date.now().toString(36), name: n, cost: c }]);
+  document.getElementById('r-name').value = '';
+  render();
+}
+function removeReward(id) { saveShop(shopItems().filter(i => i.id !== id)); render(); }
+
+function renderShop() {
+  const st = animeStatus(), avail = availableXP();
+  const el = document.getElementById('shop');
+  el.innerHTML = shopItems().map(i => {
+    if (i.daily) {
+      if (i.claimed) return '';
+      const label = st.claimed ? 'claimed today'
+        : st.allDone ? '<button onclick="claimAnimePass()">claim — all dailies done</button>'
+        : '<span class="hab">' + st.done + '/' + st.total + ' dailies (' + (st.total - st.done) + ' more)</span>';
+      return '<div>' + i.name + ' — free at 100% dailies — ' + label + '</div>';
+    }
+    const can = avail >= i.cost;
+    return '<div>' + i.name + ' — ' + i.cost + ' xp — ' +
+      '<button onclick="buyReward(\'' + i.id + '\')"' + (can ? '' : ' disabled') + '>redeem</button> ' +
+      '<button onclick="removeReward(\'' + i.id + '\')">×</button></div>';
   }).join('');
-  FLOURISH.clear();
-
-  /* arcs */
-  $('arcs').innerHTML=S.arcs.length?S.arcs.map(a=>{
-    const dn=a.steps.filter(s=>s.d).length;
-    return '<div><b>'+esc(a.n)+'</b> <span class="q">stage '+Math.min(dn+1,a.steps.length||1)+
-      ' of '+(a.steps.length||'?')+' · since '+pretty(a.started)+(a.done?' · complete':'')+'</span> '+
-      '<button onclick="arcStep(\''+a.id+'\')">+ stage</button> '+
-      '<button class="q" onclick="delArc(\''+a.id+'\')">×</button><ul>'+
-      a.steps.map((s,i)=>'<li class="'+(s.d?'d':'')+'"><button onclick="arcTick(\''+a.id+'\','+i+')">'+
-        (s.d?'✓':'·')+'</button> '+(s.d?'<s>'+esc(s.t)+'</s>':esc(s.t))+
-        (i===a.steps.length-1&&a.steps.length>1?' <span class="q">final</span>':'')+'</li>').join('')+
-      '</ul></div>';
-  }).join(''):'<p class="q">no arcs. an arc is a chapter you are trying to live, not a task.</p>';
-
-  /* chapters */
-  const weeks=[...new Set(EV.map(e=>weekOf(e.day)))].sort().reverse();
-  $('chapters').innerHTML=weeks.length
-    ? weeks.slice(0,12).map(w=>{
-        const c=(chapter(w)||'').split('\n');
-        return '<div class="chapter"><b>'+esc(c[0].replace(/^— | —$/g,''))+'</b>'+
-          esc(c.slice(1).join('\n')).replace(/\n/g,'<br>')+'</div>';
-      }).join('')
-    : '<p class="q">no weeks yet.</p>';
-
-  /* rewards */
-  $('shop').innerHTML='<div class="q">'+spendable()+' spendable · '+spent()+' spent · lifetime never drops</div>'+
-    S.shop.map(i=>'<div>'+esc(i.n)+' <span class="q">'+i.c+'</span> '+
-      '<button onclick="redeem(\''+i.id+'\')"'+(spendable()<i.c?' disabled':'')+'>take</button> '+
-      '<button class="q" onclick="delReward(\''+i.id+'\')">×</button></div>').join('');
-  $('vault').innerHTML=S.redeemed.length
-    ?'<div class="q">taken: '+S.redeemed.slice(0,8).map(r=>esc(r.n)+' ('+pretty(r.at)+')').join(', ')+'</div>':'';
-
-  /* the ledger */
-  $('ledger').innerHTML='<hr><div class="cap">the ledger · every event and the rule that produced it</div><ul>'+
-    EV.slice(0,250).map(e=>'<li class="led">'+
-      '<span>'+e.day+'</span>'+
-      '<span class="xp" style="color:var(--s-'+e.stat+')">+'+e.xp+'</span>'+
-      '<span style="color:var(--s-'+e.stat+')">'+(STATS[e.stat]?STATS[e.stat].g:'·')+'</span>'+
-      '<span class="wh">'+esc(e.text)+'</span>'+
-      '<i>'+e.rule+(e.mult!==1?' ('+e.base+'×'+e.mult.toFixed(2).replace(/\.?0+$/,'')+')':'')+'</i>'+
-      '</li>').join('')+'</ul>';
-
-  $('becoming-edit').innerHTML='<p class="q">becoming: '+esc(S.becoming.line)+
-    ' <button onclick="editBecoming()">change</button></p>';
 }
 
-/* ── auth ─────────────────────────────────────────────────────── */
-function init(){
-  const ok=token&&repo;
-  $('auth').classList.toggle('hide',!!ok);
-  $('app').classList.add('hide'); $('create').classList.add('hide');
-  const sel=$('stat-input');
-  if(sel&&!sel.options.length) sel.innerHTML=DOMAINS.map(s=>
-    '<option value="'+s+'">'+STATS[s].g+' '+s+'</option>').join('');
-  if(ok)load();
+function renderVault() {
+  const all = [...tasks, ...archivedTasks].filter(t => t.quest === 'reward' && t.claimed);
+  const el = document.getElementById('rewards-vault-list');
+  if (!all.length) { el.innerHTML = '<li>(nothing claimed yet)</li>'; return; }
+  all.sort((a, b) => new Date(b.claimedAt || b.rewardDate) - new Date(a.claimedAt || a.rewardDate));
+  el.innerHTML = all.map(r =>
+    '<li>' + esc(r.text) + (r.cost ? ' — ' + r.cost + ' xp' : '') + '</li>').join('');
 }
-function saveToken(){
-  repo=$('repo-input').value.trim(); token=$('token-input').value.trim();
-  if(!repo||!token)return;
-  localStorage.setItem('gh_repo',repo); localStorage.setItem('gh_token',token);
+
+function renderHabits() {
+  const ds = tasks.filter(t => t.quest === 'daily');
+  const el = document.getElementById('habits');
+  if (!ds.length) { el.innerHTML = '<p class="hab">no dailies yet</p>'; return; }
+  el.innerHTML = ds
+    .map(t => ({ t, n: (t.completedDates || []).length, s: habitStreak(t) }))
+    .sort((a, b) => b.n - a.n)
+    .map(({ t, n, s }) =>
+      '<div>' + (CATS[getTaskCat(t)] || '') + ' ' + esc(t.text) +
+      ' — lv ' + habitLevel(t) + ' · ' + n + '×' +
+      (s > 1 ? ' · 🔥' + s : '') + '</div>').join('');
+}
+
+function buildXPLogs() {
+  const logs = [];
+  [...tasks, ...archivedTasks].forEach(t => {
+    const cat = getTaskCat(t);
+    if (t.quest === 'daily') {
+      (t.completedDates || []).forEach(ds =>
+        logs.push({ xp: 25, cat, text: t.text, ts: ds, sort: new Date(ds).getTime() || 0 }));
+    } else if (t.done) {
+      const ts = t.completedAt || t.addedAt || '';
+      logs.push({ xp: xpFromTask(t), cat, text: t.text, ts, sort: ts ? new Date(ts).getTime() || 0 : 0 });
+    }
+  });
+  const by = catsByDate();
+  Object.keys(by).forEach(ds => {
+    const n = CAT_KEYS.filter(c => by[ds].has(c)).length;
+    if (n >= 3) logs.push({ xp: TRI_XP, cat: 'bonus', text: 'tri-pillar', ts: ds, sort: new Date(ds).getTime() || 0 });
+    else if (n === 2) logs.push({ xp: PAIR_XP, cat: 'bonus', text: 'pair', ts: ds, sort: new Date(ds).getTime() || 0 });
+  });
+  return logs.sort((a, b) => b.sort - a.sort);
+}
+
+function fmt(ts) {
+  if (!ts) return '';
+  const d = new Date(ts); if (isNaN(d)) return ts;
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function renderXPLogs() {
+  const logs = buildXPLogs(), el = document.getElementById('xp-logs-list');
+  el.innerHTML = logs.length
+    ? logs.slice(0, 200).map(l => '<li>+' + l.xp + ' xp (' + l.cat + ' ' +
+        (l.cat === 'bonus' ? '🌟' : CATS[l.cat] || '') + ') — ' + esc(l.text) +
+        (l.ts ? ' — ' + fmt(l.ts) : '') + '</li>').join('')
+    : '<li>(no xp logs yet)</li>';
+}
+
+/* ── auth ───────────────────────────────────────────────────── */
+function init() {
+  if (!token || !repo) {
+    document.getElementById('auth').style.display = '';
+    document.getElementById('app').style.display = 'none';
+  } else {
+    document.getElementById('auth').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    loadTasks();
+  }
+}
+function saveToken() {
+  repo = document.getElementById('repo-input').value.trim();
+  token = document.getElementById('token-input').value.trim();
+  if (!repo || !token) return;
+  localStorage.setItem('gh_repo', repo);
+  localStorage.setItem('gh_token', token);
   init();
 }
-function clearToken(){
-  token=repo=''; localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo'); init();
+function clearToken() {
+  token = ''; repo = '';
+  localStorage.removeItem('gh_token'); localStorage.removeItem('gh_repo');
+  init();
 }
 
-applySkin();
+/* ── data ───────────────────────────────────────────────────── */
+function backfill(list) {
+  list.forEach(t => {
+    if (t.priority === undefined) t.priority = 0;
+    if (t.dueDate === undefined) t.dueDate = null;
+    if (t.category === undefined) t.category = 'health';
+    if (t.quest === undefined) t.quest = 'main';
+  });
+  return list;
+}
+
+async function loadTasks() {
+  status('loading...');
+  try {
+    const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE,
+      { headers: { Authorization: 'token ' + token } });
+    if (!res.ok) throw new Error('fetch failed: ' + res.status);
+    const data = await res.json();
+    sha = data.sha;
+    tasks = backfill(JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))))));
+    await loadArchive();
+    render();
+    status('');
+  } catch (e) {
+    status('error: ' + e.message);
+  }
+}
+
+async function loadArchive() {
+  try {
+    const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + ARCHIVE_FILE,
+      { headers: { Authorization: 'token ' + token } });
+    if (!res.ok) { archivedTasks = []; return; }
+    const data = await res.json();
+    archivedTasks = backfill(JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))))));
+  } catch (e) { archivedTasks = []; }
+}
+
+async function freshSha() {
+  const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE,
+    { headers: { Authorization: 'token ' + token } });
+  if (!res.ok) throw new Error('sha failed: ' + res.status);
+  return (await res.json()).sha;
+}
+
+async function saveTasks() {
+  status('saving...');
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(tasks, null, 2) + '\n')));
+    const put = s => fetch('https://api.github.com/repos/' + repo + '/contents/' + FILE, {
+      method: 'PUT',
+      headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'update tasks', content, sha: s })
+    });
+    let res = await put(sha);
+    if (res.status === 409 || res.status === 422) { sha = await freshSha(); res = await put(sha); }
+    if (!res.ok) throw new Error('save failed: ' + res.status);
+    sha = (await res.json()).content.sha;
+    status('saved ✓');
+    setTimeout(() => status(''), 1000);
+  } catch (e) {
+    status('error: ' + e.message + ' — your tick is still on screen, try again');
+  }
+}
+
+/* ── render ─────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function setFilter(c) {
+  currentFilter = c;
+  document.querySelectorAll('#filters button').forEach(b =>
+    b.style.fontWeight = b.getAttribute('data-filter') === c ? 'bold' : 'normal');
+  render();
+}
+
+function render() {
+  renderNextMove(); renderMap(); renderRPGStats(); renderShop(); renderVault(); renderHabits(); renderXPLogs();
+
+  const filtered = tasks
+    .map((t, i) => ({ t, i }))
+    .filter(({ t }) => t.quest !== 'reward')
+    .filter(({ t }) => currentFilter === 'all' || getTaskCat(t) === currentFilter);
+
+  const pick = q => filtered.filter(({ t }) => t.quest === q);
+  const sortFn = (a, b) => {
+    if (a.t.done !== b.t.done) return a.t.done ? 1 : -1;
+    const rank = { health: 1, relationships: 2, wealth: 3 };
+    const ca = rank[getTaskCat(a.t)] || 1, cb = rank[getTaskCat(b.t)] || 1;
+    if (ca !== cb) return ca - cb;
+    return (b.t.priority || 0) - (a.t.priority || 0);
+  };
+
+  const dailies = shuffleDailies(pick('daily').map(x => x.t))
+    .map(t => ({ t, i: tasks.indexOf(t) }));
+  const mains = pick('main').sort(sortFn);
+  const stories = pick('story').sort(sortFn);
+  const sides = pick('side').sort(sortFn);
+
+  let html = '';
+
+  const section = (title, items, isDaily) => {
+    if (!items.length && title !== 'story quests') return;
+    html += '<p>— ' + title + ' —</p><ul>';
+    if (!items.length) { html += '<li>(none active)</li></ul>'; return; }
+    items.forEach(({ t, i }) => {
+      const done = isDaily ? isDailyDoneToday(t) : t.done;
+      const cat = CATS[getTaskCat(t)] || '';
+      let extra = '';
+      if (isDaily) {
+        const s = habitStreak(t), n = (t.completedDates || []).length;
+        extra = ' <span class="hab">lv' + habitLevel(t) + (s > 1 ? ' 🔥' + s : '') + ' ·' + n + '×</span>';
+      }
+      if (isOverdue(t)) extra += ' <span class="warn">⚠️ overdue ' + t.dueDate + '</span>';
+      else if (isDueToday(t)) extra += ' <span class="warn">📢 due today</span>';
+
+      const boss = !isDaily && isBoss(t) && !t.done;
+      const st = stepsOf(t);
+
+      html += '<li><input type="checkbox"' + (done ? ' checked' : '') +
+        ' onchange="' + (isDaily ? 'toggleDaily' : 'toggle') + '(' + i + ')"> ' +
+        cat + ' <span ondblclick="editTask(' + i + ')" title="double click to edit">' +
+        (done ? '<s>' + esc(t.text) + '</s>' : esc(t.text)) + '</span>' + extra;
+
+      if (boss) {
+        html += ' <span class="hab">' + hpBar(t) + '</span> ' +
+          '<button onclick="strike(' + i + ')">strike</button>';
+        if (bossHits(t)) html += ' <button onclick="unstrike(' + i + ')">−</button>';
+      }
+      if (st.length) {
+        html += ' <span class="hab">' + stepsDone(t) + '/' + st.length + ' steps</span><ul>';
+        st.forEach((sp, si) => {
+          html += '<li><input type="checkbox"' + (sp.done ? ' checked' : '') +
+            ' onchange="toggleStep(' + i + ',' + si + ')"> ' +
+            (sp.done ? '<s>' + esc(sp.text) + '</s>' : esc(sp.text)) + '</li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    html += '</ul>';
+  };
+
+  section('daily quests', dailies, true);
+  section('main quests', mains, false);
+  section('story quests', stories, false);
+  section('side quests', sides, false);
+
+  document.getElementById('list').innerHTML = html;
+}
+
+function toggleMore() {
+  moreVisible = !moreVisible;
+  document.getElementById('more').style.display = moreVisible ? '' : 'none';
+  document.getElementById('more-btn').textContent = moreVisible ? 'hide options' : 'show options';
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = '';
+  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 1800);
+}
+function banner(msg) {
+  const el = document.getElementById('banner');
+  el.textContent = msg; el.style.display = '';
+  clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 4000);
+}
+
+/* ── actions ────────────────────────────────────────────────── */
+async function addTask(e) {
+  e.preventDefault();
+  const inp = document.getElementById('inp');
+  const v = inp.value.trim(); if (!v) return;
+  const quest = document.getElementById('quest-input').value;
+  const t = {
+    text: v, quest, done: false,
+    addedAt: new Date().toISOString(), completedAt: null,
+    priority: 0, dueDate: null,
+    category: document.getElementById('cat-input').value
+  };
+  if (quest === 'daily') t.completedDates = [];
+  const hp = parseInt(document.getElementById('hp-input').value, 10);
+  if (quest !== 'daily' && hp > 1) { t.hp = hp; t.hits = 0; }
+  tasks.push(t);
+  inp.value = '';
+  document.getElementById('hp-input').value = '1';
+  render();
+  await saveTasks();
+}
+
+function announce(cat, gained, before) {
+  toast('+' + gained + ' xp (' + cat + ')');
+  const after = catXP(cat);
+  if (getLevel(after) > getLevel(before)) banner('🎉 ' + cat + ' → lvl ' + getLevel(after));
+  const b = bonusBreakdown();
+  if (b.todayCount === 2) toast('+' + PAIR_XP + ' pair bonus');
+  if (b.todayCount === 3) banner('⭐ tri-pillar 3/3 — +' + TRI_XP + ' xp');
+}
+
+async function toggle(i) {
+  const t = tasks[i], was = t.done;
+  const cat = getTaskCat(t), before = catXP(cat);
+  t.done = !t.done;
+  t.completedAt = t.done ? new Date().toISOString() : null;
+  if (t.done && !was) announce(cat, xpFromTask(t), before);
+  render();
+  await saveTasks();
+}
+
+async function toggleDaily(i) {
+  const t = tasks[i];
+  if (!t.completedDates) t.completedDates = [];
+  const cat = getTaskCat(t), before = catXP(cat);
+  const at = t.completedDates.indexOf(today());
+  if (at >= 0) t.completedDates.splice(at, 1);
+  else {
+    t.completedDates.push(today());
+    announce(cat, 25, before);
+    const st = animeStatus();
+    if (st.allDone && !st.claimed) banner('🎉 all dailies done — 🍿 anime pass unlocked');
+  }
+  render();
+  await saveTasks();
+}
+
+/* land one session on a boss. the last hit is what actually
+   completes the task, so the XP arrives exactly as v1 paid it. */
+async function strike(i) {
+  const t = tasks[i];
+  t.hits = bossHits(t) + 1;
+  if (bossLeft(t) <= 0) {
+    const cat = getTaskCat(t), before = catXP(cat);
+    t.done = true;
+    t.completedAt = new Date().toISOString();
+    banner('⚔ defeated — ' + t.text);
+    announce(cat, xpFromTask(t), before);
+  } else {
+    toast(t.text + ' — ' + bossLeft(t) + ' left');
+  }
+  render();
+  await saveTasks();
+}
+
+async function unstrike(i) {
+  const t = tasks[i];
+  t.hits = Math.max(0, bossHits(t) - 1);
+  if (t.done) { t.done = false; t.completedAt = null; }
+  render();
+  await saveTasks();
+}
+
+async function toggleStep(i, si) {
+  const t = tasks[i], st = stepsOf(t);
+  if (!st[si]) return;
+  st[si].done = !st[si].done;
+  if (st.length && st.every(x => x.done) && !t.done) {
+    const cat = getTaskCat(t), before = catXP(cat);
+    t.done = true;
+    t.completedAt = new Date().toISOString();
+    banner('quest complete — ' + t.text);
+    announce(cat, xpFromTask(t), before);
+  } else if (t.done && !st.every(x => x.done)) {
+    t.done = false; t.completedAt = null;
+  }
+  render();
+  await saveTasks();
+}
+
+async function editTask(i) {
+  const t = tasks[i];
+  const text = prompt('edit task text:', t.text);
+  if (text !== null && text.trim()) t.text = text.trim();
+  const cat = prompt('category (health / relationships / wealth):', t.category || 'health');
+  if (cat && CAT_KEYS.includes(cat.trim().toLowerCase())) t.category = cat.trim().toLowerCase();
+  const q = prompt('quest (daily / main / side / story):', t.quest || 'main');
+  if (q && ['daily', 'main', 'side', 'story'].includes(q.trim().toLowerCase())) {
+    t.quest = q.trim().toLowerCase();
+    if (t.quest === 'daily' && !t.completedDates) t.completedDates = [];
+  }
+  const due = prompt('due date (YYYY-MM-DD, blank for none):', t.dueDate || '');
+  t.dueDate = due && /^\d{4}-\d{2}-\d{2}$/.test(due.trim()) ? due.trim() : null;
+
+  if (t.quest !== 'daily') {
+    const hp = prompt('how many sessions will this take? (1 = a normal task)', String(t.hp || 1));
+    const n = parseInt(hp, 10);
+    if (n > 1) { t.hp = n; t.hits = Math.min(t.hits || 0, n); }
+    else { delete t.hp; delete t.hits; }
+
+    const cur = stepsOf(t).map(x => x.text).join('\n');
+    const raw = prompt('steps, one per line (blank for none):', cur);
+    if (raw !== null) {
+      const lines = raw.split('\n').map(x => x.trim()).filter(Boolean);
+      const was = stepsOf(t);
+      t.steps = lines.map(text => ({ text, done: (was.find(x => x.text === text) || {}).done || false }));
+      if (!t.steps.length) delete t.steps;
+    }
+  }
+  render();
+  await saveTasks();
+}
+
+setFilter('all');
 init();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
 </html>
